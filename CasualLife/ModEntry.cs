@@ -27,6 +27,12 @@ namespace CasualLife
                 prefix: new HarmonyMethod(typeof(DayTimeMoneyBoxPatch), nameof(DayTimeMoneyBoxPatch.drawFromDecom))
             );
 
+            harmony.Patch(
+                original: AccessTools.Method(typeof(DayTimeMoneyBox), "receiveRightClick"),
+                prefix: new HarmonyMethod(typeof(DayTimeMoneyBoxPatch), nameof(DayTimeMoneyBoxPatch.receiveRightClick))
+            );
         }
+
+
     }
 }
