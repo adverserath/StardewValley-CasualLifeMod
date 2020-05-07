@@ -2,6 +2,7 @@
 using StardewModdingAPI;
 using StardewValley;
 using StardewValley.Locations;
+using StardewValley.Objects;
 using StardewValley.Tools;
 using System;
 using System.Collections.Generic;
@@ -63,6 +64,10 @@ namespace CasualLife
                 if (Game1.IsMasterGame)
                 {
                     Game1.timeOfDay++;
+                }
+                if (Game1.timeOfDay % 10 != 0)
+                {
+                    return;
                 }
                 if (Game1.timeOfDay % 100 >= 60)
                 {
