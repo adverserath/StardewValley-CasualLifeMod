@@ -19,7 +19,7 @@ namespace CasualLife
         public static bool draw(SpriteBatch b, ref DayTimeMoneyBox __instance, ref Rectangle ___sourceRect, ref string ___hoverText)
         {
             TimeSpan elapsedGameTime;
-            string str;
+            string str = String.Empty;
             float obj = 0;
             float obj1 = 0;
             bool totalMilliseconds;
