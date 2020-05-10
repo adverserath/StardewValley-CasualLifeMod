@@ -2,10 +2,11 @@
 using StardewModdingAPI;
 using StardewValley;
 using StardewValley.Locations;
-using StardewValley.Objects;
+using StardewValley.Network;
 using StardewValley.Tools;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace CasualLife
 {
@@ -17,9 +18,11 @@ namespace CasualLife
         {
             Monitor = monitor;
         }
+        private static int gameSpeed = 1000;
 
         public static bool UpdateGameClock(GameTime time)
         {
+            
             if (Game1.shouldTimePass() && !Game1.IsClient)
             {
                 Game1.gameTimeInterval = Game1.gameTimeInterval + time.ElapsedGameTime.Milliseconds;
@@ -27,13 +30,13 @@ namespace CasualLife
             if (Game1.timeOfDay >= Game1.getTrulyDarkTime())
             {
                 int num = (int)((float)(Game1.timeOfDay - Game1.timeOfDay % 100) + (float)(Game1.timeOfDay % 100 / 10) * 16.66f);
-                float single = Math.Min(0.93f, 0.75f + ((float)(num - Game1.getTrulyDarkTime()) + (float)Game1.gameTimeInterval / 7000f * 16.6f) * 0.000625f);
+                float single = Math.Min(0.93f, 0.75f + ((float)(num - Game1.getTrulyDarkTime()) + (float)Game1.gameTimeInterval / gameSpeed * 16.6f) * 0.000625f);
                 Game1.outdoorLight = (Game1.isRaining ? Game1.ambientLight : Game1.eveningColor) * single;
             }
             else if (Game1.timeOfDay >= Game1.getStartingToGetDarkTime())
             {
                 int num1 = (int)((float)(Game1.timeOfDay - Game1.timeOfDay % 100) + (float)(Game1.timeOfDay % 100 / 10) * 16.66f);
-                float single1 = Math.Min(0.93f, 0.3f + ((float)(num1 - Game1.getStartingToGetDarkTime()) + (float)Game1.gameTimeInterval / 7000f * 16.6f) * 0.00225f);
+                float single1 = Math.Min(0.93f, 0.3f + ((float)(num1 - Game1.getStartingToGetDarkTime()) + (float)Game1.gameTimeInterval / gameSpeed * 16.6f) * 0.00225f);
                 Game1.outdoorLight = (Game1.isRaining ? Game1.ambientLight : Game1.eveningColor) * single1;
             }
             else if (Game1.bloom != null && Game1.timeOfDay >= Game1.getStartingToGetDarkTime() - 100 && Game1.bloom.Visible)
@@ -44,8 +47,9 @@ namespace CasualLife
             {
                 Game1.outdoorLight = Game1.ambientLight * 0.3f;
             }
-            if (Game1.currentLocation != null && Game1.gameTimeInterval > 1000 + Game1.currentLocation.getExtraMillisecondsPerInGameMinuteForThisLocation())
+            if (Game1.currentLocation != null && Game1.gameTimeInterval > gameSpeed + Game1.currentLocation.getExtraMillisecondsPerInGameMinuteForThisLocation())
             {
+
                 if (Game1.panMode)
                 {
                     Game1.gameTimeInterval = 0;
@@ -221,6 +225,23 @@ namespace CasualLife
             });
             return false;
         }
+        public static bool getExtraMillisecondsPerInGameMinuteForThisLocation(MineShaft __instance, ref int __result)
+        {
+            if (!Game1.IsMultiplayer || (Game1.IsMultiplayer &&
+                Game1.otherFarmers.Any() &&
+                Game1.otherFarmers.Roots.All
+                (f => ((NetFarmerRoot)f.Value).Value.currentLocation is MineShaft
+                && ((MineShaft)((NetFarmerRoot)f.Value).Value.currentLocation).mineLevel == MineShaft.desertArea)))
+            {
+                int returnVal = (int)(gameSpeed * 1.285);
+                __result = returnVal;
+            }
+            if (__instance.getMineArea(-1) != MineShaft.desertArea)
+            {
+                __result = 0;
+            }
 
+            return false;
+        }
     }
 }

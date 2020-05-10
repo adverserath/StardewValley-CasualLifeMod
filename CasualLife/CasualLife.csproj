@@ -47,6 +47,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DayTimeMoneyBoxPatch.cs" />
+    <Compile Include="MineShaftPatch.cs" />
     <Compile Include="ModEntry.cs" />
     <Compile Include="Game1Patches.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
