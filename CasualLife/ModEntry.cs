@@ -36,10 +36,7 @@ namespace CasualLife
             harmony.Patch(
                 original: AccessTools.Method(typeof(MineShaft), "getExtraMillisecondsPerInGameMinuteForThisLocation"),
                 prefix: new HarmonyMethod(typeof(Game1Patches), nameof(Game1Patches.getExtraMillisecondsPerInGameMinuteForThisLocation))
-);
-
+            );
         }
-
-
     }
 }
