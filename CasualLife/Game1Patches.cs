@@ -18,7 +18,7 @@ namespace CasualLife
         {
             Monitor = monitor;
         }
-        private static int gameSpeed = 100;
+        private static int gameSpeed = 1000;
         private static Tuple<int, float> lightByDay = null;
         private static float seasonColor;
         private static float redness;
@@ -62,8 +62,8 @@ namespace CasualLife
             int R = Game1.timeOfDay < 600 + (255 - seasonColor) ? (int)(lightByTime * (1 - (600 + (255 - seasonColor) - Game1.timeOfDay) / 500f)) : (int)lightByTime;
             int G = (int)lightByTime;
             int B = Game1.timeOfDay > 2100 - (255 - seasonColor) ? (int)(lightByTime * (1 - (Game1.timeOfDay - (2100 - (255 - seasonColor))) / 1000f)) : (int)lightByTime;
-            R = R - (R / 20);
-            B = B - (B / 20);
+            R = (int)(R -(redness/10));
+            B = (int)(B - (blueness / 10));
             Game1.ambientLight = new Color(R, G, B, 255);
 
             Game1.outdoorLight = new Color(R, G, B, 255);
