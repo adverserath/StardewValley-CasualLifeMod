@@ -18,38 +18,88 @@ namespace CasualLife
         {
             Monitor = monitor;
         }
-        private static int gameSpeed = 1000;
+        private static int gameSpeed = 100;
+        private static Tuple<int, float> lightByDay = null;
+        private static float seasonColor;
+        private static float redness;
+        private static float blueness;
 
         public static bool UpdateGameClock(GameTime time)
         {
-            
+            if (lightByDay == null || lightByDay.Item1 != Game1.dayOfMonth)
+            {
+                int multiplier = 250;
+                if (Game1.currentSeason == "spring")
+                {
+                    seasonColor = (254 - multiplier * ((float)((Math.Sqrt(Math.Pow((14 - (29 - Game1.dayOfMonth) - 27) * -1, 2)))) / 100));
+                }
+                else if (Game1.currentSeason == "summer")
+                {
+                    seasonColor = (254 - multiplier * (((float)Math.Sqrt(Math.Pow((14 - Game1.dayOfMonth) * -1, 2))) / 100));
+                }
+                else if (Game1.currentSeason == "fall")
+                {
+                    seasonColor = (254 - multiplier * (((float)(Math.Sqrt(Math.Pow((14 - (Game1.dayOfMonth) - 27) * -1, 2))) / 100)));
+                }
+                else if (Game1.currentSeason == "winter")
+                {
+                    seasonColor = (254 - multiplier * (((float)(55 - Math.Sqrt(Math.Pow(((Game1.dayOfMonth) - 14) * -1, 2)))) / 100));
+                }
+                redness = seasonColor;
+                blueness = 255 - seasonColor;
+                lightByDay = new Tuple<int, float>(Game1.dayOfMonth, seasonColor);
+            }
+
             if (Game1.shouldTimePass() && !Game1.IsClient)
             {
                 Game1.gameTimeInterval = Game1.gameTimeInterval + time.ElapsedGameTime.Milliseconds;
             }
-            if (Game1.timeOfDay >= Game1.getTrulyDarkTime())
+
+
+            float timeOfDayDivisable = Game1.timeOfDay / 100 * 100 + ((Game1.timeOfDay % 100) / 60f * 100) + ((float)Game1.gameTimeInterval / gameSpeed);
+            float lightByTime = 241 - seasonColor * (1 - (float)((Math.Cos(Math.Sqrt(Math.Pow((timeOfDayDivisable - 2500) * -1, 2)) / 100 / 12 * Math.PI) / 2 + 0.5) / 1.1 + 0.05));
+
+            int R = Game1.timeOfDay < 600 + (255 - seasonColor) ? (int)(lightByTime * (1 - (600 + (255 - seasonColor) - Game1.timeOfDay) / 500f)) : (int)lightByTime;
+            int G = (int)lightByTime;
+            int B = Game1.timeOfDay > 2100 - (255 - seasonColor) ? (int)(lightByTime * (1 - (Game1.timeOfDay - (2100 - (255 - seasonColor))) / 1000f)) : (int)lightByTime;
+            R = R - (R / 20);
+            B = B - (B / 20);
+            Game1.ambientLight = new Color(R, G, B, 255);
+
+            Game1.outdoorLight = new Color(R, G, B, 255);
+            Game1.showGlobalMessage(Game1.outdoorLight.R.ToString());
+
+            if (Game1.bloom != null && Game1.bloom.Visible)
             {
-                int num = (int)((float)(Game1.timeOfDay - Game1.timeOfDay % 100) + (float)(Game1.timeOfDay % 100 / 10) * 16.66f);
-                float single = Math.Min(0.93f, 0.75f + ((float)(num - Game1.getTrulyDarkTime()) + (float)Game1.gameTimeInterval / gameSpeed * 16.6f) * 0.000625f);
-                Game1.outdoorLight = (Game1.isRaining ? Game1.ambientLight : Game1.eveningColor) * single;
+                Game1.bloom.Settings.BloomThreshold = Math.Min(1f, Game1.bloom.Settings.BloomThreshold + lightByTime);
             }
-            else if (Game1.timeOfDay >= Game1.getStartingToGetDarkTime())
-            {
-                int num1 = (int)((float)(Game1.timeOfDay - Game1.timeOfDay % 100) + (float)(Game1.timeOfDay % 100 / 10) * 16.66f);
-                float single1 = Math.Min(0.93f, 0.3f + ((float)(num1 - Game1.getStartingToGetDarkTime()) + (float)Game1.gameTimeInterval / gameSpeed * 16.6f) * 0.00225f);
-                Game1.outdoorLight = (Game1.isRaining ? Game1.ambientLight : Game1.eveningColor) * single1;
-            }
-            else if (Game1.bloom != null && Game1.timeOfDay >= Game1.getStartingToGetDarkTime() - 100 && Game1.bloom.Visible)
-            {
-                Game1.bloom.Settings.BloomThreshold = Math.Min(1f, Game1.bloom.Settings.BloomThreshold + 0.0004f);
-            }
-            else if (Game1.isRaining)
-            {
-                Game1.outdoorLight = Game1.ambientLight * 0.3f;
-            }
+
+
             if (Game1.currentLocation != null && Game1.gameTimeInterval > gameSpeed + Game1.currentLocation.getExtraMillisecondsPerInGameMinuteForThisLocation())
             {
+                //Game1.timeOfDay = 600;
 
+                //Game1.dayOfMonth++;
+                //if (Game1.dayOfMonth > 28)
+                //{
+                //    Game1.dayOfMonth = 1;
+                //    if (Game1.currentSeason == "spring")
+                //    {
+                //        Game1.currentSeason = "summer";
+                //    }
+                //    else if (Game1.currentSeason == "summer")
+                //    {
+                //        Game1.currentSeason = "fall";
+                //    }
+                //    else if (Game1.currentSeason == "fall")
+                //    {
+                //        Game1.currentSeason = "winter";
+                //    }
+                //    else if (Game1.currentSeason == "winter")
+                //    {
+                //        Game1.currentSeason = "spring";
+                //    }
+                //}
                 if (Game1.panMode)
                 {
                     Game1.gameTimeInterval = 0;
@@ -59,12 +109,14 @@ namespace CasualLife
             return false;
         }
 
+        private static float increase = 0.01f;
         public static bool performTenMinuteClockUpdate(ref ModHooks ___hooks)
         {
             ___hooks.OnGame1_PerformTenMinuteClockUpdate(() =>
             {
                 int trulyDarkTime = Game1.getTrulyDarkTime();
                 Game1.gameTimeInterval = 0;
+
                 if (Game1.IsMasterGame)
                 {
                     Game1.timeOfDay++;
