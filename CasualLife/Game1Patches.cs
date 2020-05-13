@@ -19,35 +19,52 @@ namespace CasualLife
             Monitor = monitor;
         }
         private static int gameSpeed = 1000;
-        private static Tuple<int, float> lightByDay = null;
+        private static int lightDay=0;
         private static float seasonColor;
+        private static float inverseSeasonColor;
         private static float redness;
         private static float blueness;
-
+        private static int sunRiseTime;
+        private static int sunRiseDec;
+        private static int sunSetTime;
+        private static int sunSetDec;
         public static bool UpdateGameClock(GameTime time)
         {
-            if (lightByDay == null || lightByDay.Item1 != Game1.dayOfMonth)
+            if (lightDay != Game1.dayOfMonth)
             {
+                lightDay = Game1.dayOfMonth;
                 int multiplier = 250;
                 if (Game1.currentSeason == "spring")
                 {
                     seasonColor = (254 - multiplier * ((float)((Math.Sqrt(Math.Pow((14 - (29 - Game1.dayOfMonth) - 27) * -1, 2)))) / 100));
+                    inverseSeasonColor = (254 - multiplier * (((float)(Math.Sqrt(Math.Pow((14 - (Game1.dayOfMonth) - 27) * -1, 2))) / 100)));
                 }
                 else if (Game1.currentSeason == "summer")
                 {
                     seasonColor = (254 - multiplier * (((float)Math.Sqrt(Math.Pow((14 - Game1.dayOfMonth) * -1, 2))) / 100));
+                    inverseSeasonColor = (254 - multiplier * (((float)(55 - Math.Sqrt(Math.Pow(((Game1.dayOfMonth) - 14) * -1, 2)))) / 100));
                 }
                 else if (Game1.currentSeason == "fall")
                 {
                     seasonColor = (254 - multiplier * (((float)(Math.Sqrt(Math.Pow((14 - (Game1.dayOfMonth) - 27) * -1, 2))) / 100)));
+                    inverseSeasonColor = (254 - multiplier * ((float)((Math.Sqrt(Math.Pow((14 - (29 - Game1.dayOfMonth) - 27) * -1, 2)))) / 100));
                 }
                 else if (Game1.currentSeason == "winter")
                 {
                     seasonColor = (254 - multiplier * (((float)(55 - Math.Sqrt(Math.Pow(((Game1.dayOfMonth) - 14) * -1, 2)))) / 100));
+                    inverseSeasonColor = (254 - multiplier * (((float)Math.Sqrt(Math.Pow((14 - Game1.dayOfMonth) * -1, 2))) / 100));
                 }
-                redness = seasonColor;
-                blueness = 255 - seasonColor;
-                lightByDay = new Tuple<int, float>(Game1.dayOfMonth, seasonColor);
+                sunRiseDec = (int)(700 + (400 - ((seasonColor - 90) * 5) / 2));
+                if (sunRiseDec % 100 >= 60)
+                {
+                    sunRiseTime = sunRiseDec - sunRiseDec % 100 + 100 + sunRiseDec % 100;
+                }
+                //= 2000 - (400 - ((C2 - 90) * 5))
+                sunSetDec = (int)(700 + (400 - ((seasonColor - 90) * 5) / 2));
+                if (sunSetDec % 100 >= 60)
+                {
+                    sunSetTime = sunSetDec - sunSetDec % 100 + 100 + sunSetDec % 100;
+                }
             }
 
             if (Game1.shouldTimePass() && !Game1.IsClient)
@@ -57,17 +74,23 @@ namespace CasualLife
 
 
             float timeOfDayDivisable = Game1.timeOfDay / 100 * 100 + ((Game1.timeOfDay % 100) / 60f * 100) + ((float)Game1.gameTimeInterval / gameSpeed);
-            float lightByTime = 241 - seasonColor * (1 - (float)((Math.Cos(Math.Sqrt(Math.Pow((timeOfDayDivisable - 2500) * -1, 2)) / 100 / 12 * Math.PI) / 2 + 0.5) / 1.1 + 0.05));
+            float baseCalc = (1 - (float)((Math.Cos(Math.Sqrt(Math.Pow((timeOfDayDivisable - 2500) * -1, 2)) / 100 / 12 * Math.PI) / 2 + 0.5) / 1.1 + 0.05));
+            float lightByTime = 241 - (seasonColor * baseCalc);
+            float redness = lightByTime / 7;
+            float blueness = (241 - (inverseSeasonColor * baseCalc)) / 7;
+            // = 700 + (400 - ((C2 - 90) * 5) / 2)
 
-            int R = Game1.timeOfDay < 600 + (255 - seasonColor) ? (int)(lightByTime * (1 - (600 + (255 - seasonColor) - Game1.timeOfDay) / 500f)) : (int)lightByTime;
+
+
+            int R = Game1.timeOfDay < sunRiseTime ? (int)(lightByTime + redness + (sunRiseTime- Game1.timeOfDay)/redness) : (int)(lightByTime + redness);
             int G = (int)lightByTime;
-            int B = Game1.timeOfDay > 2100 - (255 - seasonColor) ? (int)(lightByTime * (1 - (Game1.timeOfDay - (2100 - (255 - seasonColor))) / 1000f)) : (int)lightByTime;
-            R = (int)(R -(redness/10));
-            B = (int)(B - (blueness / 10));
-            Game1.ambientLight = new Color(R, G, B, 255);
+            int B = Game1.timeOfDay > sunSetTime ? (int)(lightByTime +blueness + blueness*(Game1.timeOfDay-sunSetTime)/100) : (int)(lightByTime + blueness);
+
+
+            //Game1.ambientLight = new Color(R, G, B, 255);
 
             Game1.outdoorLight = new Color(R, G, B, 255);
-            Game1.showGlobalMessage(Game1.outdoorLight.R.ToString());
+        //    Game1.showGlobalMessage(Game1.outdoorLight.R.ToString());
 
             if (Game1.bloom != null && Game1.bloom.Visible)
             {
@@ -77,29 +100,29 @@ namespace CasualLife
 
             if (Game1.currentLocation != null && Game1.gameTimeInterval > gameSpeed + Game1.currentLocation.getExtraMillisecondsPerInGameMinuteForThisLocation())
             {
-                //Game1.timeOfDay = 600;
+                Game1.timeOfDay = 2100; 
 
-                //Game1.dayOfMonth++;
-                //if (Game1.dayOfMonth > 28)
-                //{
-                //    Game1.dayOfMonth = 1;
-                //    if (Game1.currentSeason == "spring")
-                //    {
-                //        Game1.currentSeason = "summer";
-                //    }
-                //    else if (Game1.currentSeason == "summer")
-                //    {
-                //        Game1.currentSeason = "fall";
-                //    }
-                //    else if (Game1.currentSeason == "fall")
-                //    {
-                //        Game1.currentSeason = "winter";
-                //    }
-                //    else if (Game1.currentSeason == "winter")
-                //    {
-                //        Game1.currentSeason = "spring";
-                //    }
-                //}
+                Game1.dayOfMonth++;
+                if (Game1.dayOfMonth > 28)
+                {
+                    Game1.dayOfMonth = 1;
+                    if (Game1.currentSeason == "spring")
+                    {
+                        Game1.currentSeason = "summer";
+                    }
+                    else if (Game1.currentSeason == "summer")
+                    {
+                        Game1.currentSeason = "fall";
+                    }
+                    else if (Game1.currentSeason == "fall")
+                    {
+                        Game1.currentSeason = "winter";
+                    }
+                    else if (Game1.currentSeason == "winter")
+                    {
+                        Game1.currentSeason = "spring";
+                    }
+                }
                 if (Game1.panMode)
                 {
                     Game1.gameTimeInterval = 0;
