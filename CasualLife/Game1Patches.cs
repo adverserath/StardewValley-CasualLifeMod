@@ -34,23 +34,23 @@ namespace CasualLife
                 int multiplier = 300;
                 if (Game1.currentSeason == "spring")
                 {
-                    seasonColor = (254 - multiplier * ((float)((Math.Sqrt(Math.Pow((14 - (29 - Game1.dayOfMonth) - 27) * -1, 2)))) / 100));
-                    inverseSeasonColor = (254 - multiplier * (((float)(Math.Sqrt(Math.Pow((14 - (Game1.dayOfMonth) - 27) * -1, 2))) / 100)));
+                    seasonColor = (254 - multiplier * ((float)(Math.Abs((14 - (29 - Game1.dayOfMonth) - 27) * -1)) / 100));
+                    inverseSeasonColor = (254 - multiplier * (((float)(Math.Abs((14 - (Game1.dayOfMonth) - 27) * -1)) / 100)));
                 }
                 else if (Game1.currentSeason == "summer")
                 {
-                    seasonColor = (254 - multiplier * (((float)Math.Sqrt(Math.Pow((14 - Game1.dayOfMonth) * -1, 2))) / 100));
-                    inverseSeasonColor = (270 - multiplier * (((float)(55 - Math.Sqrt(Math.Pow(((Game1.dayOfMonth) - 14) * -1, 2)))) / 100));
+                    seasonColor = 254 - multiplier * (((float)Math.Abs((14 - Game1.dayOfMonth) * -1)) / 100);
+                    inverseSeasonColor = (270 - multiplier * (((float)(55 - Math.Abs(((Game1.dayOfMonth) - 14) * -1))) / 100));
                 }
                 else if (Game1.currentSeason == "fall")
                 {
-                    seasonColor = (254 - multiplier * (((float)(Math.Sqrt(Math.Pow((14 - (Game1.dayOfMonth) - 27) * -1, 2))) / 100)));
-                    inverseSeasonColor = (254 - multiplier * ((float)((Math.Sqrt(Math.Pow((14 - (29 - Game1.dayOfMonth) - 27) * -1, 2)))) / 100));
+                    seasonColor = (254 - multiplier * (((float)(Math.Abs((14 - (Game1.dayOfMonth) - 27) * -1))) / 100));
+                    inverseSeasonColor = (254 - multiplier * ((float)((Math.Abs((14 - (29 - Game1.dayOfMonth) - 27) * -1))) / 100));
                 }
                 else if (Game1.currentSeason == "winter")
                 {
-                    seasonColor = (254 - multiplier * (((float)(55 - Math.Sqrt(Math.Pow(((Game1.dayOfMonth) - 14) * -1, 2)))) / 100));
-                    inverseSeasonColor = (254 - multiplier * (((float)Math.Sqrt(Math.Pow((14 - Game1.dayOfMonth) * -1, 2))) / 100));
+                    seasonColor = (254 - multiplier * (((float)(55 - Math.Abs(((Game1.dayOfMonth) - 14) * -1))) / 100));
+                    inverseSeasonColor = (254 - multiplier * (((float)Math.Abs((14 - Game1.dayOfMonth) * -1)) / 100));
                 }
                 sunRiseTime = (int)(700 + (400 - (seasonColor - 90) * 5) / 2);
                 if (sunRiseTime % 100 >= 60)
