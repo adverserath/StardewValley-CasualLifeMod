@@ -31,7 +31,7 @@ namespace CasualLife
             if (lightDay != Game1.dayOfMonth)
             {
                 lightDay = Game1.dayOfMonth;
-                int multiplier = 250;
+                int multiplier = 300;
                 if (Game1.currentSeason == "spring")
                 {
                     seasonColor = (254 - multiplier * ((float)((Math.Sqrt(Math.Pow((14 - (29 - Game1.dayOfMonth) - 27) * -1, 2)))) / 100));
@@ -73,47 +73,25 @@ namespace CasualLife
 
             float timeOfDayDivisable = Game1.timeOfDay / 100 * 100 + ((Game1.timeOfDay % 100) / 60f * 100) + ((float)Game1.gameTimeInterval / gameSpeed);
             float baseCalc = (1 - (float)((Math.Cos(Math.Sqrt(Math.Pow((timeOfDayDivisable - 2500) * -1, 2)) / 100 / 12 * Math.PI) / 2 + 0.5) / 1.1 + 0.05));
-            float lightByTime = 241 - (seasonColor * baseCalc);
-            float redness = lightByTime;
-            float blueness = (250 - (inverseSeasonColor * baseCalc));
+            float lightByTime = ((241 - (seasonColor * baseCalc)));
 
-            if (Game1.timeOfDay > sunSetTime && Game1.timeOfDay < (sunSetTime + 100))
-            {
-                redness = (float)(redness * (0.5 + Math.Abs((float)((Game1.timeOfDay) - (sunSetTime + 50)) / 50)));
-            }
-            if (Game1.timeOfDay > sunRiseTime && Game1.timeOfDay < (sunRiseTime + 100))
-            {
-                redness = (float)(redness * (0.5 + Math.Abs((float)((Game1.timeOfDay) - (sunRiseTime + 50)) / 50)));
-            }
             int R = (int)lightByTime;
             int B = (int)lightByTime;
             int G = (int)lightByTime;
 
-            int difference = (sunRiseTime + 100) - Game1.timeOfDay;
-            difference = difference > 60 ? difference - 40 : difference;
-            if (Game1.timeOfDay< sunRiseTime)
+            int difference = sunRiseTime - Game1.timeOfDay;
+            difference = Math.Abs(sunRiseTime - Game1.timeOfDay) - ((Math.Abs(sunRiseTime / 100 - Game1.timeOfDay / 100)) * 40);
+
+            if (Game1.timeOfDay <= sunRiseTime || Game1.timeOfDay > sunSetTime)
             {
-                R = R = 230;
-                G = G = 230;
-                B = B = 230;
+                R = 230;
+                G = 230;
+                B = 230;
             }
-            else if (Game1.timeOfDay < (sunRiseTime+100))
+            else if (Game1.timeOfDay <= (sunRiseTime + 100)|| Game1.timeOfDay > (sunSetTime - 100))
             {
-                R = (int)(230 - lightByTime) * (difference / 20);
-                G = (int)(230 - lightByTime) * (difference / 20);
-                B = (int)(230 - lightByTime) * (difference / 20);
-            }
-            else if (Game1.timeOfDay > sunSetTime)
-            {
-                R = R = 230;
-                G = G = 230;
-                B = B = 230;
-            }
-            else if (Game1.timeOfDay > (sunSetTime - 100))
-            {
-                R = (int)(230 + lightByTime) * (difference / 20);
-                G = (int)(230 + lightByTime) * (difference / 20);
-                B = (int)(230 + lightByTime) * (difference / 20);
+                R =B=G= (int)(230 - ((230 - lightByTime) * (float)difference/ 60f));
+
             }
 
             Game1.outdoorLight = new Color(R,G,B, 255);
