@@ -18,14 +18,12 @@ namespace CasualLife
         {
             Monitor = monitor;
         }
-        private static int gameSpeed = 50;
+        private static int gameSpeed = 1000;
         private static int lightDay = 0;
         private static float seasonColor;
         private static float inverseSeasonColor;
         private static int sunRiseTime;
-        private static int sunRiseDec;
         private static int sunSetTime;
-        private static int sunSetDec;
         public static bool UpdateGameClock(GameTime time)
         {
             if (lightDay != Game1.dayOfMonth)
@@ -63,6 +61,7 @@ namespace CasualLife
                     sunSetTime = sunSetTime - sunSetTime % 100 + 100 + sunSetTime % 100 % 60;
 
                 }
+
             }
 
             if (Game1.shouldTimePass() && !Game1.IsClient)
@@ -78,23 +77,37 @@ namespace CasualLife
             int R = (int)lightByTime;
             int B = (int)lightByTime;
             int G = (int)lightByTime;
+            int secondsOfDay = getTimeInSeconds(Game1.timeOfDay);
+            int sunRiseSeconds = getTimeInSeconds(sunRiseTime);
+            int sunSetSeconds = getTimeInSeconds(sunSetTime);
 
-            int difference = sunRiseTime - Game1.timeOfDay;
-            difference = Math.Abs(sunRiseTime - Game1.timeOfDay) - ((Math.Abs(sunRiseTime / 100 - Game1.timeOfDay / 100)) * 40);
-
-            if (Game1.timeOfDay <= sunRiseTime || Game1.timeOfDay > sunSetTime)
+            if (secondsOfDay < sunRiseSeconds + 60)
             {
-                R = 230;
-                G = 230;
-                B = 230;
+                float difference = 1 - (float)((sunRiseSeconds +60) - secondsOfDay) / (sunRiseSeconds + 60);
+                R = (int)MathHelper.Lerp(Game1.morningColor.R, lightByTime, difference);
+                G = (int)MathHelper.Lerp(Game1.morningColor.G, lightByTime, difference);
+                B = (int)MathHelper.Lerp(Game1.morningColor.B, lightByTime, difference);
             }
-            else if (Game1.timeOfDay <= (sunRiseTime + 100)|| Game1.timeOfDay > (sunSetTime - 100))
+            else if (secondsOfDay < sunSetSeconds)
             {
-                R =B=G= (int)(230 - ((230 - lightByTime) * (float)difference/ 60f));
-
+                R = (int)lightByTime;
+                G = (int)lightByTime;
+                B = (int)lightByTime;
             }
-
-            Game1.outdoorLight = new Color(R,G,B, 255);
+            else if (secondsOfDay < sunSetSeconds + 180)
+            {
+                float difference = 1 - (float)(sunSetSeconds + 180 - secondsOfDay) / 180f;
+                R = (int)MathHelper.Lerp(lightByTime, Game1.eveningColor.R, difference);
+                G = (int)MathHelper.Lerp(lightByTime, Game1.eveningColor.G, difference);
+                B = (int)MathHelper.Lerp(lightByTime, Game1.eveningColor.B, difference);
+            }
+            else
+            {
+                R = Game1.eveningColor.R;
+                G = Game1.eveningColor.G;
+                B = Game1.eveningColor.B;
+            }
+            Game1.outdoorLight = new Color(R, G, B, 255);
 
             if (Game1.bloom != null && Game1.bloom.Visible)
             {
@@ -138,6 +151,18 @@ namespace CasualLife
                 Game1.performTenMinuteClockUpdate();
             }
             return false;
+        }
+
+        private static int calculateDifferenct(int startTime, int endTime)
+        {
+            int difference = startTime - endTime;
+            difference = Math.Abs(startTime - endTime) - ((Math.Abs(startTime / 100 - endTime / 100)) * 40);
+            return difference;
+        }
+
+        private static int getTimeInSeconds(int time)
+        {
+            return (time / 100 * 60) + time % 100; ;
         }
 
         public static bool performTenMinuteClockUpdate(ref ModHooks ___hooks)
