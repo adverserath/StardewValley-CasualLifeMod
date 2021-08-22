@@ -2,6 +2,7 @@
 using HarmonyLib;
 using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
+using StardewModdingAPI.Events;
 using StardewValley;
 using StardewValley.Locations;
 using StardewValley.Menus;
@@ -43,6 +44,180 @@ namespace CasualLife
                 original: AccessTools.Method(typeof(MineShaft), "getExtraMillisecondsPerInGameMinuteForThisLocation"),
                 prefix: new HarmonyMethod(typeof(Game1Patches), nameof(Game1Patches.getExtraMillisecondsPerInGameMinuteForThisLocation))
             );
+            if (Config.ControlDayWithKeys)
+            {
+                helper.Events.Input.ButtonPressed += this.OnButtonPressed;
+            }
+        }
+        private void OnButtonPressed(object sender, ButtonPressedEventArgs e)
+        {
+            if (!Context.IsWorldReady)
+                return;
+            if (e.Button == SButton.Left)
+            {
+                if (Game1.dayOfMonth > 1)
+                {
+                    Game1.dayOfMonth--;
+                }
+                else if (Game1.dayOfMonth == 1)
+                {
+                    Game1.dayOfMonth = 28;
+                    ShiftSeasonDown();
+                }
+            }
+
+            if (e.Button == SButton.Right)
+            {
+                if (Game1.dayOfMonth < 28)
+                {
+                    Game1.dayOfMonth++;
+                }
+                else if (Game1.dayOfMonth == 28)
+                {
+                    Game1.dayOfMonth = 1;
+                    ShiftSeasonUp();
+                }
+            }
+
+            if (e.Button == SButton.Up)
+            {
+                ShiftSeasonUp();
+            }
+            if (e.Button == SButton.Down)
+            {
+                ShiftSeasonDown();
+            }
+
+            if (e.IsDown(SButton.LeftControl) && e.IsDown(SButton.LeftShift))
+            {
+                switch (e.Button)
+                {
+                    case SButton.F1:
+                        Game1.timeOfDay = 1300;
+                        break;
+                    case SButton.F2:
+                        Game1.timeOfDay = 1400;
+                        break;
+                    case SButton.F3:
+                        Game1.timeOfDay = 1500;
+                        break;
+                    case SButton.F4:
+                        Game1.timeOfDay = 1600;
+                        break;
+                    case SButton.F5:
+                        Game1.timeOfDay = 1700;
+                        break;
+                    case SButton.F6:
+                        Game1.timeOfDay = 1800;
+                        break;
+                    case SButton.F7:
+                        Game1.timeOfDay = 1900;
+                        break;
+                    case SButton.F8:
+                        Game1.timeOfDay = 2000;
+                        break;
+                    case SButton.F9:
+                        Game1.timeOfDay = 2100;
+                        break;
+                    case SButton.F10:
+                        Game1.timeOfDay = 2200;
+                        break;
+                    case SButton.F11:
+                        Game1.timeOfDay = 2300;
+                        break;
+                    case SButton.F12:
+                        Game1.timeOfDay = 0;
+                        break;
+                }
+                if (e.Button == SButton.NumPad9)
+                {
+                    Game1.timeOfDay = 2100;
+                }
+            }
+            else if (e.IsDown(SButton.LeftControl))
+            {
+                switch (e.Button)
+                {
+                    case SButton.F1:
+                        Game1.timeOfDay = 100;
+                        break;
+                    case SButton.F2:
+                        Game1.timeOfDay = 200;
+                        break;
+                    case SButton.F3:
+                        Game1.timeOfDay = 300;
+                        break;
+                    case SButton.F4:
+                        Game1.timeOfDay = 400;
+                        break;
+                    case SButton.F5:
+                        Game1.timeOfDay = 500;
+                        break;
+                    case SButton.F6:
+                        Game1.timeOfDay = 600;
+                        break;
+                    case SButton.F7:
+                        Game1.timeOfDay = 700;
+                        break;
+                    case SButton.F8:
+                        Game1.timeOfDay = 800;
+                        break;
+                    case SButton.F9:
+                        Game1.timeOfDay = 900;
+                        break;
+                    case SButton.F10:
+                        Game1.timeOfDay = 1000;
+                        break;
+                    case SButton.F11:
+                        Game1.timeOfDay = 1100;
+                        break;
+                    case SButton.F12:
+                        Game1.timeOfDay = 1200;
+                        break;
+                }
+            }
+
+            this.Monitor.Log($"{Game1.currentSeason}", LogLevel.Debug);
+        }
+
+        private void ShiftSeasonUp()
+        {
+            if (Game1.currentSeason == "spring")
+            {
+                Game1.currentSeason = "summer";
+            }
+            else if (Game1.currentSeason == "summer")
+            {
+                Game1.currentSeason = "fall";
+            }
+            else if (Game1.currentSeason == "fall")
+            {
+                Game1.currentSeason = "winter";
+            }
+            else if (Game1.currentSeason == "winter")
+            {
+                Game1.currentSeason = "spring";
+            }
+        }
+
+        private void ShiftSeasonDown()
+        {
+            if (Game1.currentSeason == "spring")
+            {
+                Game1.currentSeason = "winter";
+            }
+            else if (Game1.currentSeason == "summer")
+            {
+                Game1.currentSeason = "spring";
+            }
+            else if (Game1.currentSeason == "fall")
+            {
+                Game1.currentSeason = "summer";
+            }
+            else if (Game1.currentSeason == "winter")
+            {
+                Game1.currentSeason = "fall";
+            }
         }
     }
 }

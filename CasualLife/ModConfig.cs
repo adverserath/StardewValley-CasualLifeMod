@@ -9,5 +9,7 @@ namespace CasualLife
     class ModConfig
     {
         public bool ControlDayLightLevels { get; set; } = false;
+        public bool ControlDayWithKeys { get; set; } = false;
+
     }
 }

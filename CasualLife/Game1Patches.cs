@@ -31,7 +31,7 @@ namespace CasualLife
             {
                 if (lightDay != Game1.dayOfMonth)
                 {
-                    lightDay = Game1.dayOfMonth;
+                   // lightDay = Game1.dayOfMonth;
                     int multiplier = 300;
                     if (Game1.currentSeason == "spring")
                     {
