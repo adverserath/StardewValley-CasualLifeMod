@@ -1,5 +1,5 @@
 ﻿using System;
-using Harmony;
+using HarmonyLib;
 using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using StardewValley;
@@ -10,19 +10,25 @@ namespace CasualLife
 {
     public class ModEntry : Mod
     {
+        private ModConfig Config;
         public override void Entry(IModHelper helper)
         {
-            var harmony = HarmonyInstance.Create(this.ModManifest.UniqueID);
+            this.Config = this.Helper.ReadConfig<ModConfig>();
+            Game1Patches.DoLighting = Config.ControlDayLightLevels;
 
+            Harmony harmony = new Harmony(this.ModManifest.UniqueID);
             harmony.Patch(
                original: AccessTools.Method(typeof(Game1), nameof(Game1.performTenMinuteClockUpdate)),
                prefix: new HarmonyMethod(typeof(Game1Patches), nameof(Game1Patches.performTenMinuteClockUpdate))
             );
 
-            harmony.Patch(
-               original: AccessTools.Method(typeof(Game1), nameof(Game1.UpdateGameClock)),
-               prefix: new HarmonyMethod(typeof(Game1Patches), nameof(Game1Patches.UpdateGameClock))
-            );
+            if (Config.ControlDayLightLevels)
+            {
+                harmony.Patch(
+                   original: AccessTools.Method(typeof(Game1), nameof(Game1.UpdateGameClock)),
+                   prefix: new HarmonyMethod(typeof(Game1Patches), nameof(Game1Patches.UpdateGameClock))
+                );
+            }
 
             harmony.Patch(
                 original: AccessTools.Method(typeof(DayTimeMoneyBox), "draw", new Type[] { typeof(SpriteBatch) }, null),

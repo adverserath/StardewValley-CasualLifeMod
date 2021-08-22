@@ -25,12 +25,13 @@ namespace CasualLife
             return true;
         }
 
-        public static bool drawFromDecom(SpriteBatch b, ref DayTimeMoneyBox __instance, ref Rectangle ___sourceRect, ref string ___hoverText)
+        public static bool drawFromDecom(SpriteBatch b, ref DayTimeMoneyBox __instance, ref Rectangle ___sourceRect, ref string ____hoverText)
 		{
-			if (Game1.timeOfDay % 100 > 10 && !is24Hour)
-			{
-				return true;
-			}
+            if (!____hoverText.Equals("") && __instance.isWithinBounds(Game1.getOldMouseX(), Game1.getOldMouseY()))
+            {
+                IClickableMenu.drawHoverText(b, "Journal (F)\nRight Click to Change Clock", Game1.dialogueFont, 0, 0, -1, null, -1, null, null, 0, -1, -1, -1, -1, 1f, null, null);
+            }
+
             TimeSpan elapsedGameTime;
             string str;
             float obj = 0;
@@ -224,10 +225,6 @@ namespace CasualLife
                 __instance.zoomOutButton.draw(b, Color.White * (Game1.options.zoomLevel <= 0.75f ? 0.5f : 1f), 1f, 0);
             }
             __instance.drawMoneyBox(b, -1, -1);
-            if (!___hoverText.Equals("") && __instance.isWithinBounds(Game1.getOldMouseX(), Game1.getOldMouseY()))
-            {
-                IClickableMenu.drawHoverText(b, ___hoverText, Game1.dialogueFont, 0, 0, -1, null, -1, null, null, 0, -1, -1, -1, -1, 1f, null, null);
-            }
             b.Draw(Game1.mouseCursors, __instance.position + new Vector2(88f, 88f), new Rectangle?(new Rectangle(324, 477, 7, 19)), Color.White, (float)(3.14159265358979 + Math.Min(3.14159265358979, (double)(((float)adjustedTime + (float)Game1.gameTimeInterval / 7000f * 16.6f - 600f) / 2000f) * 3.14159265358979)), new Vector2(3f, 17f), 4f, SpriteEffects.None, 0.9f);
             return false;
         }
