@@ -23,13 +23,12 @@ namespace CasualLife
                prefix: new HarmonyMethod(typeof(Game1Patches), nameof(Game1Patches.performTenMinuteClockUpdate))
             );
 
-            if (Config.ControlDayLightLevels)
-            {
-                harmony.Patch(
-                   original: AccessTools.Method(typeof(Game1), nameof(Game1.UpdateGameClock)),
-                   prefix: new HarmonyMethod(typeof(Game1Patches), nameof(Game1Patches.UpdateGameClock))
-                );
-            }
+
+            harmony.Patch(
+               original: AccessTools.Method(typeof(Game1), nameof(Game1.UpdateGameClock)),
+               prefix: new HarmonyMethod(typeof(Game1Patches), nameof(Game1Patches.UpdateGameClock))
+            );
+
 
             harmony.Patch(
                 original: AccessTools.Method(typeof(DayTimeMoneyBox), "draw", new Type[] { typeof(SpriteBatch) }, null),
