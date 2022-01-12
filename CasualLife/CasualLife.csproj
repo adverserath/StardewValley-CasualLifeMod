@@ -10,4 +10,10 @@
   <ItemGroup>
     <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.0.0" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="SMAPI.Toolkit">
+      <HintPath>A:\Steam\steamapps\common\Stardew Valley\smapi-internal\SMAPI.Toolkit.dll</HintPath>
+    </Reference>
+  </ItemGroup>
 </Project>
