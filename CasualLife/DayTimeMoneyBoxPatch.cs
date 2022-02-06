@@ -17,8 +17,8 @@ namespace CasualLife
         {
             Monitor = monitor;
         }
-        static bool is24Hour;
 
+        private static bool is24Hour = ModEntry.is24Hour;
         public static bool receiveRightClick(int x, int y, bool playSound = true)
         {
             is24Hour = !is24Hour;
