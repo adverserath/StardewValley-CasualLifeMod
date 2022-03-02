@@ -12,11 +12,11 @@ namespace CasualLife
     public class ModEntry : Mod
     {
         private ModConfig Config;
-        public static bool is24Hour;
         public override void Entry(IModHelper helper)
         {
             this.Config = this.Helper.ReadConfig<ModConfig>();
             Game1Patches.DoLighting = Config.ControlDayLightLevels;
+            DayTimeMoneyBoxPatch.Is24Hour = Config.Is24HourDefault;
 
             Harmony harmony = new Harmony(this.ModManifest.UniqueID);
             harmony.Patch(
@@ -44,7 +44,6 @@ namespace CasualLife
                 original: AccessTools.Method(typeof(MineShaft), "getExtraMillisecondsPerInGameMinuteForThisLocation"),
                 prefix: new HarmonyMethod(typeof(Game1Patches), nameof(Game1Patches.getExtraMillisecondsPerInGameMinuteForThisLocation))
             );
-            is24Hour = Config.Is24HourDefault;
             if (Config.ControlDayWithKeys)
             {
                 helper.Events.Input.ButtonPressed += this.OnButtonPressed;
