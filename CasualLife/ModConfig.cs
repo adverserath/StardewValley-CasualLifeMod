@@ -10,6 +10,7 @@ namespace CasualLife
     {
         public bool ControlDayLightLevels { get; set; } = false;
         public bool ControlDayWithKeys { get; set; } = false;
+        public bool Is24HourDefault { get; set; } = false;
 
     }
 }
