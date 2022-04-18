@@ -183,6 +183,10 @@ namespace CasualLife
                 }
                 if (Game1.timeOfDay % 10 != 0)
                 {
+                    if (Game1.IsMasterGame && Game1.farmEvent == null)
+                    {
+                        Game1.netWorldState.Value.UpdateFromGame1();
+                    }
                     return;
                 }
                 if (Game1.timeOfDay % 100 >= 60)
@@ -194,6 +198,7 @@ namespace CasualLife
                 {
                     Utility.performLightningUpdate(Game1.timeOfDay);
                 }
+
                 if (Game1.timeOfDay == trulyDarkTime)
                 {
                     Game1.currentLocation.switchOutNightTiles();
@@ -209,6 +214,7 @@ namespace CasualLife
                         Game1.changeMusicTrack("none", false, Game1.MusicContext.Default);
                     }
                 }
+
                 if (Game1.getMusicTrackName(Game1.MusicContext.Default).StartsWith(Game1.currentSeason) && !Game1.getMusicTrackName(Game1.MusicContext.Default).Contains("ambient") && !Game1.eventUp && Game1.isDarkOut())
                 {
                     Game1.changeMusicTrack("none", true, Game1.MusicContext.Default);
@@ -246,6 +252,7 @@ namespace CasualLife
                 }
                 Game1.player.performTenMinuteUpdate();
                 int num1 = Game1.timeOfDay;
+
                 if (num1 <= 2400)
                 {
                     if (num1 == 1200)
@@ -304,7 +311,8 @@ namespace CasualLife
                         Game1.player.mount.dismount();
                     }
                 }
-				foreach (GameLocation location in Game1.locations)
+
+                foreach (GameLocation location in Game1.locations)
 				{
 					GameLocation gameLocation = location;
 					if (gameLocation.NameOrUniqueName == Game1.currentLocation.NameOrUniqueName)
@@ -317,6 +325,7 @@ namespace CasualLife
 						((Farm)gameLocation).timeUpdate(10);
 					}
 				}
+
                 MineShaft.UpdateMines10Minutes(Game1.timeOfDay);
 				VolcanoDungeon.UpdateLevels10Minutes(Game1.timeOfDay);
 
