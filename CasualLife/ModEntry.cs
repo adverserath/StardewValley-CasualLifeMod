@@ -99,7 +99,19 @@ namespace CasualLife
                     return;
             }
         }
-
+            if (e.Button == SButton.Left)
+            {
+                if (Game1.dayOfMonth > 1)
+                {
+                    Game1.dayOfMonth--;
+                }
+                else if (Game1.dayOfMonth == 1)
+                {
+                    Game1.dayOfMonth = 28;
+                    ShiftSeasonDown();
+                }
+                return;
+            }
             if (e.Button == SButton.Right)
             {
                 if (Game1.dayOfMonth < 28)
@@ -232,6 +244,8 @@ namespace CasualLife
             {
                 Game1.currentSeason = "spring";
             }
+            Game1.setGraphicsForSeason();
+
         }
 
         private void ShiftSeasonDown()
@@ -252,6 +266,8 @@ namespace CasualLife
             {
                 Game1.currentSeason = "fall";
             }
+            Game1.setGraphicsForSeason();
+
         }
     }
 }
