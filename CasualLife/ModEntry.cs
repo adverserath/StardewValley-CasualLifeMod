@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using HarmonyLib;
 using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
@@ -16,6 +16,8 @@ namespace CasualLife
         {
             this.Config = this.Helper.ReadConfig<ModConfig>();
             Game1Patches.DoLighting = Config.ControlDayLightLevels;
+            Game1Patches.MillisecondsPerSecond = Config.MillisecondsPerSecond;
+
             DayTimeMoneyBoxPatch.Is24Hour = Config.Is24HourDefault;
 
             Harmony harmony = new Harmony(this.ModManifest.UniqueID);

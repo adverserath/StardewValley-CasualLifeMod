@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using StardewModdingAPI;
 using StardewModdingAPI.Utilities;
 using StardewValley;
@@ -16,14 +16,13 @@ namespace CasualLife
         private static IMonitor Monitor;
 
         public static bool DoLighting { get; set; }
+        public static int MillisecondsPerSecond { get; set; }
         public static void Initialize(IMonitor monitor)
         {
             Monitor = monitor;
         }
-        private static int gameSpeed = 1000;
         private static int lightDay = 0;
         private static float seasonColor;
-        private static float inverseSeasonColor;
         private static int sunRiseTime;
         private static int sunSetTime;
         public static bool UpdateGameClock(GameTime time)
@@ -36,22 +35,18 @@ namespace CasualLife
                     if (Game1.currentSeason == "spring")
                     {
                         seasonColor = (254 - multiplier * ((float)(Math.Abs((14 - (29 - Game1.dayOfMonth) - 27) * -1)) / 100));
-                        inverseSeasonColor = (254 - multiplier * (((float)(Math.Abs((14 - (Game1.dayOfMonth) - 27) * -1)) / 100)));
                     }
                     else if (Game1.currentSeason == "summer")
                     {
                         seasonColor = 254 - multiplier * (((float)Math.Abs((14 - Game1.dayOfMonth) * -1)) / 100);
-                        inverseSeasonColor = (270 - multiplier * (((float)(55 - Math.Abs(((Game1.dayOfMonth) - 14) * -1))) / 100));
                     }
                     else if (Game1.currentSeason == "fall")
                     {
                         seasonColor = (254 - multiplier * (((float)(Math.Abs((14 - (Game1.dayOfMonth) - 27) * -1))) / 100));
-                        inverseSeasonColor = (254 - multiplier * ((float)((Math.Abs((14 - (29 - Game1.dayOfMonth) - 27) * -1))) / 100));
                     }
                     else if (Game1.currentSeason == "winter")
                     {
                         seasonColor = (254 - multiplier * (((float)(55 - Math.Abs(((Game1.dayOfMonth) - 14) * -1))) / 100));
-                        inverseSeasonColor = (254 - multiplier * (((float)Math.Abs((14 - Game1.dayOfMonth) * -1)) / 100));
                     }
                     sunRiseTime = (int)(700 + (400 - (seasonColor - 90) * 5) / 2);
                     if (sunRiseTime % 100 >= 60)
@@ -62,7 +57,6 @@ namespace CasualLife
                     if (sunSetTime % 100 >= 60)
                     {
                         sunSetTime = sunSetTime - sunSetTime % 100 + 100 + sunSetTime % 100 % 60;
-
                     }
 
                 }
@@ -73,7 +67,7 @@ namespace CasualLife
                 }
 
 
-                float timeOfDayDivisable = Game1.timeOfDay / 100 * 100 + ((Game1.timeOfDay % 100) / 60f * 100) + ((float)Game1.gameTimeInterval / gameSpeed);
+                float timeOfDayDivisable = Game1.timeOfDay / 100 * 100 + ((Game1.timeOfDay % 100) / 60f * 100) + ((float)Game1.gameTimeInterval / MillisecondsPerSecond);
                 float baseCalc = (1 - (float)((Math.Cos(Math.Sqrt(Math.Pow((timeOfDayDivisable - 2500) * -1, 2)) / 100 / 12 * Math.PI) / 2 + 0.5) / 1.1 + 0.05));
                 float lightByTime = ((241 - (seasonColor * baseCalc)));
 
@@ -135,7 +129,7 @@ namespace CasualLife
                     Game1.outdoorLight = Game1.ambientLight * 0.3f;
                 }
             }
-            if (Game1.currentLocation != null && Game1.gameTimeInterval > gameSpeed + Game1.currentLocation.getExtraMillisecondsPerInGameMinuteForThisLocation())
+            if (Game1.currentLocation != null && Game1.gameTimeInterval > MillisecondsPerSecond + Game1.currentLocation.getExtraMillisecondsPerInGameMinuteForThisLocation())
             {
                 if (Game1.panMode)
                 {
@@ -145,13 +139,6 @@ namespace CasualLife
             }
 
             return false;
-        }
-
-        private static int calculateDifferenct(int startTime, int endTime)
-        {
-            int difference = startTime - endTime;
-            difference = Math.Abs(startTime - endTime) - ((Math.Abs(startTime / 100 - endTime / 100)) * 40);
-            return difference;
         }
 
         private static int getTimeInSeconds(int time)
@@ -347,7 +334,7 @@ namespace CasualLife
                 (f => ((NetFarmerRoot)f.Value).Value.currentLocation is MineShaft
                 && ((MineShaft)((NetFarmerRoot)f.Value).Value.currentLocation).mineLevel == MineShaft.desertArea)))
             {
-                int returnVal = (int)(gameSpeed * 1.285);
+                int returnVal = (int)(MillisecondsPerSecond * 1.285);
                 __result = returnVal;
             }
             if (__instance.getMineArea(-1) != MineShaft.desertArea)
