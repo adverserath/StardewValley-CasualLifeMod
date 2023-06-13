@@ -17,6 +17,7 @@ namespace CasualLife
             this.Config = this.Helper.ReadConfig<ModConfig>();
             Game1Patches.DoLighting = Config.ControlDayLightLevels;
             Game1Patches.MillisecondsPerSecond = Config.MillisecondsPerSecond;
+            Game1Patches.DisplaySunTimes = Config.DisplaySunTimes;
 
             DayTimeMoneyBoxPatch.Is24Hour = Config.Is24HourDefault;
 
