@@ -1,6 +1,5 @@
 using Microsoft.Xna.Framework;
 using StardewModdingAPI;
-using StardewModdingAPI.Utilities;
 using StardewValley;
 using StardewValley.Locations;
 using StardewValley.Network;
@@ -11,18 +10,22 @@ using System.Linq;
 
 namespace CasualLife
 {
-    public class Game1Patches
+    class Game1Patches
     {
+        public static ModConfig Config;
         private static IMonitor Monitor;
 
-        public static bool DoLighting { get; set; }
-        public static int MillisecondsPerSecond { get; set; }
-        public static bool DisplaySunTimes { get; set; }
+        public static int MillisecondsPerSecond { get { return Config.MillisecondsPerSecond; } set { Config.MillisecondsPerSecond = value; } }
+        public static bool DoLighting { get { return Config.ControlDayLightLevels; } set { Config.ControlDayLightLevels = value; } }
+        public static bool DisplaySunTimes { get { return Config.DisplaySunTimes; } set { Config.DisplaySunTimes = value; } }
+
+
 
         public static void Initialize(IMonitor monitor)
         {
             Monitor = monitor;
         }
+
         private static int lightDay = 0;
         private static float seasonColor;
         private static int sunRiseTime;
@@ -42,14 +45,6 @@ namespace CasualLife
                 {
                     if (lightDay != Game1.dayOfMonth)
                     {
-                        if (DisplaySunTimes)
-                        {
-                            lightDay = Game1.dayOfMonth;
-                            string sunriseStr = sunRiseTime.ToString();
-                            string sunsetStr = sunSetTime.ToString();
-                            Game1.addHUDMessage(new HUDMessage($"Today the sun will rise at {sunriseStr.Insert(sunriseStr.Length - 2, ":")} and set at {sunsetStr.Insert(sunsetStr.Length - 2, ":")}", ""));
-                        }
-
                         int multiplier = 300;
                         if (Game1.currentSeason == "spring")
                         {
@@ -76,6 +71,13 @@ namespace CasualLife
                         if (sunSetTime % 100 >= 60)
                         {
                             sunSetTime = sunSetTime - sunSetTime % 100 + 100 + sunSetTime % 100 % 60;
+                        }
+                        if (DisplaySunTimes)
+                        {
+                            lightDay = Game1.dayOfMonth;
+                            string sunriseStr = sunRiseTime.ToString();
+                            string sunsetStr = sunSetTime.ToString();
+                            Game1.addHUDMessage(new HUDMessage($"Today the sun will rise at {sunriseStr.Insert(sunriseStr.Length - 2, ":")} and set at {sunsetStr.Insert(sunsetStr.Length - 2, ":")}", ""));
                         }
 
                     }
@@ -123,6 +125,7 @@ namespace CasualLife
                 }
                 else
                 {
+                    lightDay = 0;
                     if (Game1.timeOfDay >= Game1.getTrulyDarkTime())
                     {
                         int adjustedTime2 = (int)((float)(Game1.timeOfDay - Game1.timeOfDay % 100) + (float)(Game1.timeOfDay % 100 / 10) * 16.66f);
@@ -358,5 +361,7 @@ namespace CasualLife
 
             return false;
         }
+
+
     }
 }

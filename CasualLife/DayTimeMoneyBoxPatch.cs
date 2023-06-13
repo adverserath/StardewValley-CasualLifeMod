@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using StardewModdingAPI;
@@ -13,12 +13,13 @@ namespace CasualLife
     class DayTimeMoneyBoxPatch
     {
         private static IMonitor Monitor;
+        public static ModConfig Config;
 
         public static void Initialize(IMonitor monitor)
         {
             Monitor = monitor;
         }
-        public static bool Is24Hour { get; set; }
+        public static bool Is24Hour { get { return Config.Is24HourDefault; } set { Config.Is24HourDefault = value; } }
 
         public static bool receiveRightClick(int x, int y, bool playSound = true)
         {
