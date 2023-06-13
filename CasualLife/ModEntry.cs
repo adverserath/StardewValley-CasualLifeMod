@@ -274,8 +274,6 @@ namespace CasualLife
                         break;
                 }
             }
-
-            this.Monitor.Log($"{Game1.currentSeason}", LogLevel.Debug);
         }
 
         private void ShiftSeasonUp()
