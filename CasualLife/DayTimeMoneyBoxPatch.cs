@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using StardewValley;
+using StardewValley.BellsAndWhistles;
 using StardewValley.Menus;
 using System;
 using System.Text;
@@ -10,13 +11,8 @@ namespace CasualLife
 {
     class DayTimeMoneyBoxPatch
     {
-        private static IMonitor Monitor;
+        public static IModHelper helper;
         public static ModConfig Config;
-
-        public static void Initialize(IMonitor monitor)
-        {
-            Monitor = monitor;
-        }
         public static bool Is24Hour { get { return Config.Is24HourDefault; } set { Config.Is24HourDefault = value; } }
 
         public static bool receiveRightClick(int x, int y, bool playSound = true)
@@ -37,20 +33,25 @@ namespace CasualLife
 
         private static StringBuilder _temp = new StringBuilder();
 
-        private static string _amString;
-
-        private static string _pmString;
-
         public static bool drawFromDecom(SpriteBatch b, ref DayTimeMoneyBox __instance,
             ref Rectangle ___sourceRect,
             ref string ____hoverText,
             ref int ____lastDayOfMonth,
             ref string ____lastDayOfMonthString,
-            ref StringBuilder ____dateText)
+            ref StringBuilder ____dateText,
+            ref int ___questNotificationTimer,
+            ref Texture2D ___questPingTexture,
+            ref string ___questPingString,
+            ref string ___goldCoinString,
+            ref int ___goldCoinTimer,
+            ref Rectangle ___questPingSourceRect)
         {
+            string _amString = "am";
+            string _pmString = "pm";
+
             if (!____hoverText.Equals("") && __instance.isWithinBounds(Game1.getOldMouseX(), Game1.getOldMouseY()))
             {
-                IClickableMenu.drawHoverText(b, "Journal (F)\nRight Click to Change Clock", Game1.dialogueFont, 0, 0, -1, null, -1, null, null, 0, -1, -1, -1, -1, 1f, null, null);
+                IClickableMenu.drawHoverText(b, helper.Translation.Get("draw.hoverMenuText"), Game1.dialogueFont, 0, 0, -1, null, -1, null, null, 0, null, -1, -1, -1, 1f, null, null);
             }
 
             SpriteFont spriteFont = (LocalizedContentManager.CurrentLanguageCode == LocalizedContentManager.LanguageCode.ko) ? Game1.smallFont : Game1.dialogueFont;
@@ -99,202 +100,147 @@ namespace CasualLife
             }
 
             ____dateText.Clear();
-            if (LocalizedContentManager.CurrentLanguageCode == LocalizedContentManager.LanguageCode.ja)
+            switch (LocalizedContentManager.CurrentLanguageCode)
             {
-                ____dateText.AppendEx(Game1.dayOfMonth);
-                ____dateText.Append("日 (");
-                ____dateText.Append(____lastDayOfMonthString);
-                ____dateText.Append(")");
-            }
-            else if (LocalizedContentManager.CurrentLanguageCode == LocalizedContentManager.LanguageCode.zh)
-            {
-                ____dateText.Append(____lastDayOfMonthString);
-                ____dateText.Append(" ");
-                ____dateText.AppendEx(Game1.dayOfMonth);
-                ____dateText.Append("日");
-            }
-            else if (LocalizedContentManager.CurrentLanguageCode == LocalizedContentManager.LanguageCode.mod)
-            {
-                ____dateText.Append(LocalizedContentManager.CurrentModLanguage.ClockDateFormat.Replace("[DAY_OF_WEEK]", ____lastDayOfMonthString).Replace("[DAY_OF_MONTH]", Game1.dayOfMonth.ToString()));
-            }
-            else
-            {
-                ____dateText.Append(____lastDayOfMonthString);
-                ____dateText.Append(". ");
-                ____dateText.AppendEx(Game1.dayOfMonth);
+                case LocalizedContentManager.LanguageCode.ja:
+                    ____dateText.AppendEx(Game1.dayOfMonth);
+                    ____dateText.Append("日 (");
+                    ____dateText.Append(____lastDayOfMonthString);
+                    ____dateText.Append(')');
+                    break;
+                case LocalizedContentManager.LanguageCode.zh:
+                    ____dateText.AppendEx(Game1.dayOfMonth);
+                    ____dateText.Append("日 ");
+                    ____dateText.Append(____lastDayOfMonthString);
+                    ____dateText.Append(' ');
+                    break;
+                case LocalizedContentManager.LanguageCode.mod:
+                    ____dateText.Append(LocalizedContentManager.CurrentModLanguage.ClockDateFormat.Replace("[DAY_OF_WEEK]", ____lastDayOfMonthString).Replace("[DAY_OF_MONTH]", Game1.dayOfMonth.ToString()));
+
+                    break;
+                default:
+                    ____dateText.Append(____lastDayOfMonthString);
+                    ____dateText.Append(' ');
+                    ____dateText.AppendEx(Game1.dayOfMonth);
+                    break;
             }
 
             Vector2 vector = spriteFont.MeasureString(____dateText);
-            Vector2 value = new Vector2((float)___sourceRect.X * 0.55f - vector.X / 2f, (float)___sourceRect.Y * (LocalizedContentManager.CurrentLanguageLatin ? 0.1f : 0.1f) - vector.Y / 2f);
+            Vector2 value = new(___sourceRect.X * 0.5625f - vector.X / 2f, ___sourceRect.Y * (LocalizedContentManager.CurrentLanguageLatin ? 0.1f : 0.1f) - vector.Y / 2f);
             Utility.drawTextWithShadow(b, ____dateText, spriteFont, __instance.position + value, Game1.textColor);
-            b.Draw(Game1.mouseCursors, __instance.position + new Vector2(212f, 68f), new Rectangle(406, 441 + Utility.getSeasonNumber(Game1.currentSeason) * 8, 12, 8), Color.White, 0f, Vector2.Zero, 4f, SpriteEffects.None, 0.9f);
-            b.Draw(Game1.mouseCursors, __instance.position + new Vector2(116f, 68f), new Rectangle(317 + 12 * Game1.weatherIcon, 421, 12, 8), Color.White, 0f, Vector2.Zero, 4f, SpriteEffects.None, 0.9f);
+
+            b.Draw(Game1.mouseCursors, __instance.position + new Vector2(212f, 68f), new Rectangle(406, 441 + Game1.seasonIndex * 8, 12, 8), Color.White, 0f, Vector2.Zero, 4f, SpriteEffects.None, 0.9f);
+            if (Game1.weatherIcon == 999)
+            {
+                b.Draw(Game1.mouseCursors_1_6, __instance.position + new Vector2(116f, 68f), new Rectangle(243, 293, 12, 8), Color.White, 0f, Vector2.Zero, 4f, SpriteEffects.None, 0.9f);
+            }
+            else
+            {
+                b.Draw(Game1.mouseCursors, __instance.position + new Vector2(116f, 68f), new Rectangle(317 + 12 * Game1.weatherIcon, 421, 12, 8), Color.White, 0f, Vector2.Zero, 4f, SpriteEffects.None, 0.9f);
+            }
+
             _padZeros.Clear();
             string zeroPad = (Game1.timeOfDay % 100) < 10 && (Game1.timeOfDay % 100) > 0 ? "0" : "";
-            string hours = (Game1.timeOfDay / 100 % 12 == 0 ? "12" : string.Concat(Game1.timeOfDay / 100 % 12));
+            string hours = Game1.timeOfDay / 100 % 12 == 0 ? "12" : string.Concat(Game1.timeOfDay / 100 % 12);
 
             if (Game1.timeOfDay % 100 == 0)
             {
-                _padZeros.Append("0");
+                _padZeros.Append('0');
             }
 
             _hours.Clear();
-            switch (LocalizedContentManager.CurrentLanguageCode)
+            if (Is24Hour)
             {
-                case LocalizedContentManager.LanguageCode.zh:
-                    if (Game1.timeOfDay / 100 % 24 == 0)
-                    {
-                        _hours.Append("00");
-                    }
-                    else if (Game1.timeOfDay / 100 % 12 == 0)
-                    {
-                        _hours.Append("12");
-                    }
-                    else
-                    {
-                        _hours.AppendEx(Game1.timeOfDay / 100 % 12);
-                    }
 
-                    break;
-                case LocalizedContentManager.LanguageCode.ru:
-                case LocalizedContentManager.LanguageCode.pt:
-                case LocalizedContentManager.LanguageCode.es:
-                case LocalizedContentManager.LanguageCode.de:
-                case LocalizedContentManager.LanguageCode.th:
-                case LocalizedContentManager.LanguageCode.fr:
-                case LocalizedContentManager.LanguageCode.tr:
-                case LocalizedContentManager.LanguageCode.hu:
-                    _temp.Clear();
-                    _temp.AppendEx(Game1.timeOfDay / 100 % 24);
-                    if (Game1.timeOfDay / 100 % 24 <= 9)
-                    {
-                        _hours.Append("0");
-                    }
+                _temp.Clear();
+                _temp.AppendEx(Game1.timeOfDay / 100 % 24);
+                if (Game1.timeOfDay / 100 % 24 <= 9)
+                {
+                    _hours.Append('0');
+                }
 
-                    _hours.AppendEx(_temp);
-                    break;
-                default:
-                    if (Is24Hour)
-                    {
-                        hours = string.Concat(Game1.timeOfDay / 100 % 24);
-                        hours = (Game1.timeOfDay / 100 % 24 <= 9 ? string.Concat("0", hours) : hours);
-                        _hours.Append(hours);
-
-                    }
-                    else
-                    {
-
-                        if (Game1.timeOfDay / 100 % 12 == 0)
-                        {
-                            if (LocalizedContentManager.CurrentLanguageCode == LocalizedContentManager.LanguageCode.ja)
-                            {
-                                _hours.Append("0");
-                            }
-                            else
-                            {
-                                _hours.Append("12");
-                            }
-                        }
-                        else
-                        {
-                            _hours.AppendEx(Game1.timeOfDay / 100 % 12);
-                        }
-                    }
-                    break;
+                _hours.AppendEx(_temp);
+            }
+            else if (Game1.timeOfDay / 100 % 12 == 0)
+            {
+                if (LocalizedContentManager.CurrentLanguageCode == LocalizedContentManager.LanguageCode.ja)
+                {
+                    _hours.Append('0');
+                }
+                else
+                {
+                    _hours.Append("12");
+                }
+            }
+            else
+            {
+                _hours.AppendEx(Game1.timeOfDay / 100 % 12);
             }
 
             _timeText.Clear();
             _timeText.AppendEx(_hours);
-            _timeText.Append(":");
+            _timeText.Append(':');
             _timeText.Append(zeroPad);
             _timeText.AppendEx(Game1.timeOfDay % 100);
             _timeText.AppendEx(_padZeros);
-            if (LocalizedContentManager.CurrentLanguageCode == LocalizedContentManager.LanguageCode.en || LocalizedContentManager.CurrentLanguageCode == LocalizedContentManager.LanguageCode.it)
+
+            if (!Is24Hour)
             {
-                _timeText.Append(" ");
-                if (Game1.timeOfDay < 1200 || Game1.timeOfDay >= 2400)
+                switch (LocalizedContentManager.CurrentLanguageCode)
                 {
-                    _timeText.Append(_amString);
+                    case LocalizedContentManager.LanguageCode.ko:
+                        if (Game1.timeOfDay < 1200 || Game1.timeOfDay >= 2400)
+                        {
+                            _timeText.Append(_amString);
+                        }
+                        else
+                        {
+                            _timeText.Append(_pmString);
+                        }
+                        break;
+                    case LocalizedContentManager.LanguageCode.ja:
+                        _temp.Clear();
+                        _temp.AppendEx(_timeText);
+                        _timeText.Clear();
+                        if (Game1.timeOfDay < 1200 || Game1.timeOfDay >= 2400)
+                        {
+                            _timeText.Append(_amString);
+                            _timeText.Append(' ');
+                            _timeText.AppendEx(_temp);
+                        }
+                        else
+                        {
+                            _timeText.Append(_pmString);
+                            _timeText.Append(' ');
+                            _timeText.AppendEx(_temp);
+                        }
+                        break;
+                    case LocalizedContentManager.LanguageCode.mod:
+                        _timeText.Clear();
+                        _timeText.Append(LocalizedContentManager.FormatTimeString(Game1.timeOfDay, LocalizedContentManager.CurrentModLanguage.ClockTimeFormat));
+                        break;
+                    default:
+                        {
+                            _timeText.Append(' ');
+                            if (Game1.timeOfDay < 1200 || Game1.timeOfDay >= 2400)
+                            {
+                                _timeText.Append(_amString);
+                            }
+                            else
+                            {
+                                _timeText.Append(_pmString);
+                            }
+                            break;
+                        }
                 }
-                else
-                {
-                    _timeText.Append(_pmString);
-                }
-            }
-            else if (LocalizedContentManager.CurrentLanguageCode == LocalizedContentManager.LanguageCode.ko)
-            {
-                if (Game1.timeOfDay < 1200 || Game1.timeOfDay >= 2400)
-                {
-                    _timeText.Append(_amString);
-                }
-                else
-                {
-                    _timeText.Append(_pmString);
-                }
-            }
-            else if (LocalizedContentManager.CurrentLanguageCode == LocalizedContentManager.LanguageCode.ja)
-            {
-                _temp.Clear();
-                _temp.AppendEx(_timeText);
-                _timeText.Clear();
-                if (Game1.timeOfDay < 1200 || Game1.timeOfDay >= 2400)
-                {
-                    _timeText.Append(_amString);
-                    _timeText.Append(" ");
-                    _timeText.AppendEx(_temp);
-                }
-                else
-                {
-                    _timeText.Append(_pmString);
-                    _timeText.Append(" ");
-                    _timeText.AppendEx(_temp);
-                }
-            }
-            else if (LocalizedContentManager.CurrentLanguageCode == LocalizedContentManager.LanguageCode.zh)
-            {
-                _temp.Clear();
-                _temp.AppendEx(_timeText);
-                _timeText.Clear();
-                if (Game1.timeOfDay < 600 || Game1.timeOfDay >= 2400)
-                {
-                    _timeText.Append("凌晨 ");
-                    _timeText.AppendEx(_temp);
-                }
-                else if (Game1.timeOfDay < 1200)
-                {
-                    _timeText.Append(_amString);
-                    _timeText.Append(" ");
-                    _timeText.AppendEx(_temp);
-                }
-                else if (Game1.timeOfDay < 1300)
-                {
-                    _timeText.Append("中午  ");
-                    _timeText.AppendEx(_temp);
-                }
-                else if (Game1.timeOfDay < 1900)
-                {
-                    _timeText.Append(_pmString);
-                    _timeText.Append(" ");
-                    _timeText.AppendEx(_temp);
-                }
-                else
-                {
-                    _timeText.Append("晚上  ");
-                    _timeText.AppendEx(_temp);
-                }
-            }
-            else if (LocalizedContentManager.CurrentLanguageCode == LocalizedContentManager.LanguageCode.mod)
-            {
-                _timeText.Clear();
-                _timeText.Append(LocalizedContentManager.FormatTimeString(Game1.timeOfDay, LocalizedContentManager.CurrentModLanguage.ClockTimeFormat));
             }
 
             Vector2 vector2 = spriteFont.MeasureString(_timeText);
-            Vector2 value2 = new Vector2((float)___sourceRect.X * 0.55f - vector2.X / 2f + (float)((__instance.timeShakeTimer > 0) ? Game1.random.Next(-2, 3) : 0), (float)___sourceRect.Y * (LocalizedContentManager.CurrentLanguageLatin ? 0.31f : 0.31f) - vector2.Y / 2f + (float)((__instance.timeShakeTimer > 0) ? Game1.random.Next(-2, 3) : 0));
+            Vector2 value2 = new(___sourceRect.X * 0.55f - vector2.X / 2f + ((__instance.timeShakeTimer > 0) ? Game1.random.Next(-2, 3) : 0), ___sourceRect.Y * (LocalizedContentManager.CurrentLanguageLatin ? 0.31f : 0.31f) - vector2.Y / 2f + (float)((__instance.timeShakeTimer > 0) ? Game1.random.Next(-2, 3) : 0));
             bool flag = Game1.shouldTimePass() || Game1.fadeToBlack || Game1.currentGameTime.TotalGameTime.TotalMilliseconds % 2000.0 > 1000.0;
             Utility.drawTextWithShadow(b, _timeText, spriteFont, __instance.position + value2, (Game1.timeOfDay >= 2400) ? Color.Red : (Game1.textColor * (flag ? 1f : 0.5f)));
-            int num = (int)((float)(Game1.timeOfDay - Game1.timeOfDay % 100) + (float)(Game1.timeOfDay % 100 / 10) * 16.66f);
-            if (Game1.player.visibleQuestCount > 0)
+            int num = (int)(Game1.timeOfDay - Game1.timeOfDay % 100 + Game1.timeOfDay % 100 / 10 * 16.66f);
+            if (Game1.player.hasVisibleQuests)
             {
                 __instance.questButton.draw(b);
                 if (__instance.questPulseTimer > 0)
@@ -322,6 +268,25 @@ namespace CasualLife
             }
 
             b.Draw(Game1.mouseCursors, __instance.position + new Vector2(88f, 88f), new Rectangle(324, 477, 7, 19), Color.White, (float)(Math.PI + Math.Min(Math.PI, (double)(((float)num + (float)Game1.gameTimeInterval / 7000f * 16.6f - 600f) / 2000f) * Math.PI)), new Vector2(3f, 17f), 4f, SpriteEffects.None, 0.9f);
+            if (___questNotificationTimer > 0)
+            {
+                Vector2 basePosition = __instance.position + new Vector2(27f, 76f) * 4f;
+                b.Draw(Game1.mouseCursors_1_6, basePosition, new Rectangle(257, 228, 39, 18), Color.White, 0f, Vector2.Zero, 4f, SpriteEffects.None, 0.9f);
+                b.Draw(___questPingTexture, basePosition + new Vector2(1f, 1f) * 4f, ___questPingSourceRect, Color.White, 0f, Vector2.Zero, 4f, SpriteEffects.None, 0.91f);
+                if (___questPingString != null)
+                {
+                    Utility.drawTextWithShadow(b, ___questPingString, Game1.smallFont, basePosition + new Vector2(27f, 9.5f) * 4f - Game1.smallFont.MeasureString(___questPingString) * 0.5f, Game1.textColor);
+                }
+                else
+                {
+                    b.Draw(Game1.mouseCursors_1_6, basePosition + new Vector2(22f, 5f) * 4f, new Rectangle(297, 229, 9, 8), Color.White, 0f, Vector2.Zero, 4f, SpriteEffects.None, 0.91f);
+                }
+            }
+            if (___goldCoinTimer > 0)
+            {
+                SpriteText.drawSmallTextBubble(b, ___goldCoinString, __instance.position + new Vector2(5f, 73f) * 4f, -1, 0.99f, drawPointerOnTop: true);
+            }
+
             return false;
 
         }
