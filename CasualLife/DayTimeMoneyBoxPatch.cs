@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using StardewValley;
+using StardewValley.BellsAndWhistles;
 using StardewValley.Menus;
 using System;
 using System.Text;
@@ -46,13 +47,14 @@ namespace CasualLife
             ref string ____hoverText,
             ref int ____lastDayOfMonth,
             ref string ____lastDayOfMonthString,
-            ref StringBuilder ____dateText)
+            ref StringBuilder ____dateText,
+            ref Texture2D ___questPingTexture,
+                ref Rectangle ___questPingSourceRect,
+                                ref string ___questPingString,
+                                                ref int ___goldCoinTimer,
+                                                                ref Vector2 ___position,
+                                                                ref string ___goldCoinString)
         {
-            if (!____hoverText.Equals("") && __instance.isWithinBounds(Game1.getOldMouseX(), Game1.getOldMouseY()))
-            {
-                IClickableMenu.drawHoverText(b, "Journal (F)\nRight Click to Change Clock", Game1.dialogueFont, 0, 0, -1, null, -1, null, null, 0, -1, -1, -1, -1, 1f, null, null);
-            }
-
             SpriteFont spriteFont = (LocalizedContentManager.CurrentLanguageCode == LocalizedContentManager.LanguageCode.ko) ? Game1.smallFont : Game1.dialogueFont;
 
             __instance.position = new Vector2(Game1.uiViewport.Width - 300, 8f);
@@ -294,7 +296,7 @@ namespace CasualLife
             bool flag = Game1.shouldTimePass() || Game1.fadeToBlack || Game1.currentGameTime.TotalGameTime.TotalMilliseconds % 2000.0 > 1000.0;
             Utility.drawTextWithShadow(b, _timeText, spriteFont, __instance.position + value2, (Game1.timeOfDay >= 2400) ? Color.Red : (Game1.textColor * (flag ? 1f : 0.5f)));
             int num = (int)((float)(Game1.timeOfDay - Game1.timeOfDay % 100) + (float)(Game1.timeOfDay % 100 / 10) * 16.66f);
-            if (Game1.player.visibleQuestCount > 0)
+            if (Game1.player.hasVisibleQuests)
             {
                 __instance.questButton.draw(b);
                 if (__instance.questPulseTimer > 0)
@@ -322,9 +324,27 @@ namespace CasualLife
             }
 
             b.Draw(Game1.mouseCursors, __instance.position + new Vector2(88f, 88f), new Rectangle(324, 477, 7, 19), Color.White, (float)(Math.PI + Math.Min(Math.PI, (double)(((float)num + (float)Game1.gameTimeInterval / 7000f * 16.6f - 600f) / 2000f) * Math.PI)), new Vector2(3f, 17f), 4f, SpriteEffects.None, 0.9f);
+            if (__instance.questPingTimer > 0)
+            {
+                Vector2 vector5 = __instance.position + new Vector2(27f, 76f) * 4f;
+                b.Draw(Game1.mouseCursors_1_6, vector5, new Rectangle(257, 228, 39, 18), Color.White, 0f, Vector2.Zero, 4f, SpriteEffects.None, 0.9f);
+                b.Draw(___questPingTexture, vector5 + new Vector2(1f, 1f) * 4f, ___questPingSourceRect, Color.White, 0f, Vector2.Zero, 4f, SpriteEffects.None, 0.91f);
+                if (___questPingString != null)
+                {
+                    Utility.drawTextWithShadow(b, ___questPingString, Game1.smallFont, vector5 + new Vector2(27f, 9.5f) * 4f - Game1.smallFont.MeasureString(___questPingString) * 0.5f, Game1.textColor);
+                }
+                else
+                {
+                    b.Draw(Game1.mouseCursors_1_6, vector5 + new Vector2(22f, 5f) * 4f, new Rectangle(297, 229, 9, 8), Color.White, 0f, Vector2.Zero, 4f, SpriteEffects.None, 0.91f);
+                }
+            }
+
+            if (___goldCoinTimer > 0)
+            {
+                SpriteText.drawSmallTextBubble(b, ___goldCoinString, ___position + new Vector2(5f, 73f) * 4f, -1, 0.99f, drawPointerOnTop: true);
+            }
+
             return false;
-
         }
-
     }
 }

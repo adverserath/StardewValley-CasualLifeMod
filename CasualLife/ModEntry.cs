@@ -44,8 +44,8 @@ namespace CasualLife
                 prefix: new HarmonyMethod(typeof(DayTimeMoneyBoxPatch), nameof(DayTimeMoneyBoxPatch.receiveRightClick))
             );
             harmony.Patch(
-                original: AccessTools.Method(typeof(MineShaft), "getExtraMillisecondsPerInGameMinuteForThisLocation"),
-                prefix: new HarmonyMethod(typeof(Game1Patches), nameof(Game1Patches.getExtraMillisecondsPerInGameMinuteForThisLocation))
+                original: AccessTools.Constructor(typeof(MineShaft), new[] { typeof(Int32) } ),
+                postfix: new HarmonyMethod(typeof(Game1Patches), nameof(Game1Patches.create))
             );
 
             helper.Events.Input.ButtonPressed += this.OnButtonPressed;
