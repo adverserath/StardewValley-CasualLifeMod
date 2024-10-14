@@ -48,6 +48,7 @@ namespace CasualLife
             ref int ____lastDayOfMonth,
             ref string ____lastDayOfMonthString,
             ref StringBuilder ____dateText,
+            ref int ___questNotificationTimer,
             ref Texture2D ___questPingTexture,
                 ref Rectangle ___questPingSourceRect,
                                 ref string ___questPingString,
@@ -57,7 +58,7 @@ namespace CasualLife
         {
             SpriteFont spriteFont = (LocalizedContentManager.CurrentLanguageCode == LocalizedContentManager.LanguageCode.ko) ? Game1.smallFont : Game1.dialogueFont;
 
-            __instance.position = new Vector2(Game1.uiViewport.Width - 300, 8f);
+            ___position = new Vector2(Game1.uiViewport.Width - 300, 8f);
             if (Game1.isOutdoorMapSmallerThanViewport())
             {
                 __instance.position = new Vector2(Math.Min(__instance.position.X, -Game1.uiViewport.X + Game1.currentLocation.map.Layers[0].LayerWidth * 64 - 300), 8f);
@@ -69,7 +70,7 @@ namespace CasualLife
             __instance.questButton.bounds = new Rectangle(__instance.xPositionOnScreen + 212, __instance.yPositionOnScreen + 240, 44, 46);
             __instance.zoomOutButton.bounds = new Rectangle(__instance.xPositionOnScreen + 92, __instance.yPositionOnScreen + 244, 28, 32);
             __instance.zoomInButton.bounds = new Rectangle(__instance.xPositionOnScreen + 124, __instance.yPositionOnScreen + 244, 28, 32);
-
+            
             if (__instance.timeShakeTimer > 0)
             {
                 __instance.timeShakeTimer -= Game1.currentGameTime.ElapsedGameTime.Milliseconds;
@@ -299,7 +300,7 @@ namespace CasualLife
             if (Game1.player.hasVisibleQuests)
             {
                 __instance.questButton.draw(b);
-                if (__instance.questPulseTimer > 0)
+                if (___questNotificationTimer > 0)
                 {
                     float num2 = 1f / (Math.Max(300f, Math.Abs(__instance.questPulseTimer % 1000 - 500)) / 500f);
                     b.Draw(Game1.mouseCursors, new Vector2(__instance.questButton.bounds.X + 24, __instance.questButton.bounds.Y + 32) + ((num2 > 1f) ? new Vector2(Game1.random.Next(-1, 2), Game1.random.Next(-1, 2)) : Vector2.Zero), new Rectangle(395, 497, 3, 8), Color.White, 0f, new Vector2(2f, 4f), 4f * num2, SpriteEffects.None, 0.99f);
@@ -324,7 +325,7 @@ namespace CasualLife
             }
 
             b.Draw(Game1.mouseCursors, __instance.position + new Vector2(88f, 88f), new Rectangle(324, 477, 7, 19), Color.White, (float)(Math.PI + Math.Min(Math.PI, (double)(((float)num + (float)Game1.gameTimeInterval / 7000f * 16.6f - 600f) / 2000f) * Math.PI)), new Vector2(3f, 17f), 4f, SpriteEffects.None, 0.9f);
-            if (__instance.questPingTimer > 0)
+            if (___questNotificationTimer > 0)
             {
                 Vector2 vector5 = __instance.position + new Vector2(27f, 76f) * 4f;
                 b.Draw(Game1.mouseCursors_1_6, vector5, new Rectangle(257, 228, 39, 18), Color.White, 0f, Vector2.Zero, 4f, SpriteEffects.None, 0.9f);
