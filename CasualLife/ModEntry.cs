@@ -25,8 +25,8 @@ namespace CasualLife
             DayTimeMoneyBoxPatch.Config = Config;
 
             Harmony harmony = new Harmony(this.ModManifest.UniqueID);
-            Game1.realMilliSecondsPerGameMinute = 1000;
-            Game1.realMilliSecondsPerGameTenMinutes = 10000;
+            Game1.realMilliSecondsPerGameMinute = this.Config.MillisecondsPerSecond;
+            Game1.realMilliSecondsPerGameTenMinutes = this.Config.MillisecondsPerSecond * 10;
 
             harmony.Patch(
                original: AccessTools.Method(typeof(Game1), nameof(Game1.UpdateGameClock)),
@@ -50,15 +50,15 @@ namespace CasualLife
 
         private void OnGameLaunched(object sender, GameLaunchedEventArgs e)
         {
-           var configMenu = this.Helper.ModRegistry.GetApi<IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu");
+            var configMenu = this.Helper.ModRegistry.GetApi<IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu");
             if (configMenu is null)
                 return;
 
-           configMenu.Register(
-                mod: this.ModManifest,
-                reset: () => this.Config = new ModConfig(),
-                save: () => this.Helper.WriteConfig(this.Config)
-            );
+            configMenu.Register(
+                 mod: this.ModManifest,
+                 reset: () => this.Config = new ModConfig(),
+                 save: () => this.Helper.WriteConfig(this.Config)
+             );
 
             configMenu.AddBoolOption(
                 mod: this.ModManifest,
@@ -67,20 +67,20 @@ namespace CasualLife
                 getValue: () => this.Config.Is24HourDefault,
                 setValue: value => this.Config.Is24HourDefault = value
             );
-           configMenu.AddBoolOption(
-                mod: this.ModManifest,
-                name: () => "Enable custom lighting",
-                tooltip: () => "Use the mods lighting rebuild.",
-                getValue: () => this.Config.ControlDayLightLevels,
-                setValue: value => this.Config.ControlDayLightLevels = value
-            );
-           configMenu.AddBoolOption(
-                mod: this.ModManifest,
-                name: () => "Enable debug time controls",
-                tooltip: () => "Using arrows on the keyboard you can change time/day/seasons",
-                getValue: () => this.Config.ControlDayWithKeys,
-                setValue: value => this.Config.ControlDayWithKeys = value
-            );
+            configMenu.AddBoolOption(
+                 mod: this.ModManifest,
+                 name: () => "Enable custom lighting",
+                 tooltip: () => "Use the mods lighting rebuild.",
+                 getValue: () => this.Config.ControlDayLightLevels,
+                 setValue: value => this.Config.ControlDayLightLevels = value
+             );
+            configMenu.AddBoolOption(
+                 mod: this.ModManifest,
+                 name: () => "Enable debug time controls",
+                 tooltip: () => "Using arrows on the keyboard you can change time/day/seasons",
+                 getValue: () => this.Config.ControlDayWithKeys,
+                 setValue: value => this.Config.ControlDayWithKeys = value
+             );
             configMenu.AddBoolOption(
                  mod: this.ModManifest,
                  name: () => "Show Sun rise/set times",
@@ -92,7 +92,9 @@ namespace CasualLife
                 mod: this.ModManifest,
                 name: () => "Milliseconds per clock tick",
                 getValue: () => this.Config.MillisecondsPerSecond,
-                setValue: value => { this.Config.MillisecondsPerSecond = value;
+                setValue: value =>
+                {
+                    this.Config.MillisecondsPerSecond = value;
                     Game1.realMilliSecondsPerGameMinute = value;
                     Game1.realMilliSecondsPerGameTenMinutes = value;
                 }
@@ -106,10 +108,12 @@ namespace CasualLife
 
 
             if (e.IsDown(SButton.LeftControl))
-                {
+            {
                 if (e.Button == SButton.Left)
                 {
-                        Game1.timeOfDay -= 100;
+                    Game1.timeOfDay -= 100;
+                    if (Game1.timeOfDay < 600)
+                        Game1.timeOfDay = 600;
                     return;
                 }
 
@@ -133,9 +137,9 @@ namespace CasualLife
                     }
                     return;
                 }
-            
-            if (e.Button == SButton.Down)
-            {
+
+                if (e.Button == SButton.Down)
+                {
                     if (Game1.timeOfDay % 100 <= 0)
                     {
                         Game1.timeOfDay -= 41;
@@ -147,8 +151,8 @@ namespace CasualLife
                         Game1.ticks = 0;
                     }
                     return;
+                }
             }
-        }
             if (e.Button == SButton.Left)
             {
                 if (Game1.dayOfMonth > 1)
