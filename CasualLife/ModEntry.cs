@@ -1,6 +1,9 @@
+
 using System;
+using System.Text;
 using GenericModConfigMenu;
 using HarmonyLib;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
@@ -22,35 +25,27 @@ namespace CasualLife
             DayTimeMoneyBoxPatch.Config = Config;
 
             Harmony harmony = new Harmony(this.ModManifest.UniqueID);
-            harmony.Patch(
-               original: AccessTools.Method(typeof(Game1), nameof(Game1.performTenMinuteClockUpdate)),
-               prefix: new HarmonyMethod(typeof(Game1Patches), nameof(Game1Patches.performTenMinuteClockUpdate))
-            );
-
+            Game1.realMilliSecondsPerGameMinute = 1000;
+            Game1.realMilliSecondsPerGameTenMinutes = 10000;
 
             harmony.Patch(
                original: AccessTools.Method(typeof(Game1), nameof(Game1.UpdateGameClock)),
                prefix: new HarmonyMethod(typeof(Game1Patches), nameof(Game1Patches.UpdateGameClock))
             );
 
-
             harmony.Patch(
                 original: AccessTools.Method(typeof(DayTimeMoneyBox), "draw", new Type[] { typeof(SpriteBatch) }, null),
                 prefix: new HarmonyMethod(typeof(DayTimeMoneyBoxPatch), nameof(DayTimeMoneyBoxPatch.drawFromDecom))
-            );
-
-            harmony.Patch(
-                original: AccessTools.Method(typeof(DayTimeMoneyBox), "receiveRightClick"),
-                prefix: new HarmonyMethod(typeof(DayTimeMoneyBoxPatch), nameof(DayTimeMoneyBoxPatch.receiveRightClick))
-            );
-            harmony.Patch(
-                original: AccessTools.Constructor(typeof(MineShaft), new[] { typeof(Int32) } ),
-                postfix: new HarmonyMethod(typeof(Game1Patches), nameof(Game1Patches.create))
-            );
+                );
 
             helper.Events.Input.ButtonPressed += this.OnButtonPressed;
             helper.Events.GameLoop.GameLaunched += this.OnGameLaunched;
+            helper.Events.Multiplayer.PeerConnected += this.FixEventBug;
+        }
 
+        private void FixEventBug(object sender, PeerConnectedEventArgs e)
+        {
+            Game1Patches.CheckFestivalsFix();
         }
 
         private void OnGameLaunched(object sender, GameLaunchedEventArgs e)
@@ -97,7 +92,10 @@ namespace CasualLife
                 mod: this.ModManifest,
                 name: () => "Milliseconds per clock tick",
                 getValue: () => this.Config.MillisecondsPerSecond,
-                setValue: value => this.Config.MillisecondsPerSecond = value
+                setValue: value => { this.Config.MillisecondsPerSecond = value;
+                    Game1.realMilliSecondsPerGameMinute = value;
+                    Game1.realMilliSecondsPerGameTenMinutes = value;
+                }
             );
         }
 
