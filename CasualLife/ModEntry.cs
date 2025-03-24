@@ -16,7 +16,7 @@ namespace CasualLife
     public class ModEntry : Mod
     {
         private ModConfig Config;
-
+        private Harmony harmony;
         public override void Entry(IModHelper helper)
         {
             this.Config = this.Helper.ReadConfig<ModConfig>();
@@ -24,17 +24,19 @@ namespace CasualLife
             Game1Patches.Config = Config;
             DayTimeMoneyBoxPatch.Config = Config;
 
-            Harmony harmony = new Harmony(this.ModManifest.UniqueID);
+            harmony = new Harmony(this.ModManifest.UniqueID);
             Game1.realMilliSecondsPerGameMinute = this.Config.MillisecondsPerSecond;
             Game1.realMilliSecondsPerGameTenMinutes = this.Config.MillisecondsPerSecond * 10;
 
-            if (!IsAndroid() && !this.Config.NoUI)
+            if (!this.Config.DisableCLock)
             {
                 harmony.Patch(
                    original: AccessTools.Method(typeof(Game1), nameof(Game1.UpdateGameClock)),
                    prefix: new HarmonyMethod(typeof(Game1Patches), nameof(Game1Patches.UpdateGameClock))
                 );
-
+            }
+            if (!IsAndroid() && !this.Config.DisableCLock)
+            {
                 harmony.Patch(
                     original: AccessTools.Method(typeof(DayTimeMoneyBox), "draw", new Type[] { typeof(SpriteBatch) }, null),
                     prefix: new HarmonyMethod(typeof(DayTimeMoneyBoxPatch), nameof(DayTimeMoneyBoxPatch.drawFromDecom))
@@ -65,22 +67,127 @@ namespace CasualLife
         private void OnGameLaunched(object sender, GameLaunchedEventArgs e)
         {
             var configMenu = this.Helper.ModRegistry.GetApi<IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu");
-            if (configMenu is null)
-                return;
 
+            if (configMenu is null)
+            {
+                Monitor.Log("GMCM not found! Is it installed?", LogLevel.Warn);
+                return;
+            }
             configMenu.Register(
                  mod: this.ModManifest,
                  reset: () => this.Config = new ModConfig(),
                  save: () => this.Helper.WriteConfig(this.Config)
              );
+            configMenu.AddPageLink(this.ModManifest, "General", text: () => "General");
+            configMenu.AddPageLink(this.ModManifest, "Harmony", text: () => "Harmony Patches");
+
+            configMenu.AddPage(ModManifest, "General", () => "General Settings");
 
             configMenu.AddBoolOption(
-                mod: this.ModManifest,
-                name: () => "24 Hour Clock",
-                tooltip: () => "Sets clock to 24 hours.",
-                getValue: () => this.Config.Is24HourDefault,
-                setValue: value => this.Config.Is24HourDefault = value
+                 mod: this.ModManifest,
+                 name: () => "Enable debug time controls",
+                 tooltip: () => "Using arrows on the keyboard you can change time/day/seasons",
+                 getValue: () => this.Config.ControlDayWithKeys,
+                 setValue: value => this.Config.ControlDayWithKeys = value
             );
+            if (IsAndroid())
+            {
+                configMenu.AddTextOption(
+                    mod: this.ModManifest,
+                    name: () => "Milliseconds per clock tick",
+                    getValue: () => this.Config.MillisecondsPerSecond.ToString(),
+                    setValue: value =>
+                    {
+                        try
+                        {
+                            int parsed = int.Parse(value);
+                            this.Config.MillisecondsPerSecond = parsed;
+                            Game1.realMilliSecondsPerGameMinute = parsed;
+                            Game1.realMilliSecondsPerGameTenMinutes = parsed * 10;
+                        }
+                        catch (Exception)
+                        {
+                        }
+                    }
+                );
+            }
+            else
+            {
+                configMenu.AddNumberOption(
+    mod: this.ModManifest,
+    name: () => "Milliseconds per clock tick",
+    getValue: () => this.Config.MillisecondsPerSecond,
+    setValue: value =>
+    {
+        this.Config.MillisecondsPerSecond = value;
+        Game1.realMilliSecondsPerGameMinute = value;
+        Game1.realMilliSecondsPerGameTenMinutes = value * 10;
+    }
+);
+            }
+
+
+            configMenu.AddPage(ModManifest, "Harmony", () => "Harmony Patches");
+            configMenu.AddParagraph(
+    mod: this.ModManifest,
+    text: () => "Disable all Harmony patches. This will stop custom lighting, 24 hour clock and seconds on clock, " +
+    "but you can still control Game Speed. Do this if your game runs slow."
+);
+            configMenu.AddBoolOption(
+     mod: this.ModManifest,
+     name: () => "Disable harmony patches",
+     tooltip: () => "Harmony patches are disabled, No seconds showing on clock, no lighting changes. Better for performance on low end machines.",
+     getValue: () => this.Config.DisableCLock,
+     setValue: value =>
+     {
+         Game1.timeOfDay = (Game1.timeOfDay / 10) * 10;
+         this.Config.DisableCLock = value;
+         if (value)
+         {
+             harmony.Unpatch(original: AccessTools.Method(typeof(Game1), nameof(Game1.UpdateGameClock)), HarmonyPatchType.Prefix, "*");
+             if (!IsAndroid())
+                 harmony.Unpatch(original: AccessTools.Method(typeof(DayTimeMoneyBox), "draw", new Type[] { typeof(SpriteBatch) }, null), HarmonyPatchType.Prefix, "*");
+
+         }
+         else
+         {
+             harmony.Patch(
+               original: AccessTools.Method(typeof(Game1), nameof(Game1.UpdateGameClock)),
+               prefix: new HarmonyMethod(typeof(Game1Patches), nameof(Game1Patches.UpdateGameClock))
+            );
+             if (!IsAndroid())
+                 harmony.Patch(
+                     original: AccessTools.Method(typeof(DayTimeMoneyBox), "draw", new Type[] { typeof(SpriteBatch) }, null),
+                     prefix: new HarmonyMethod(typeof(DayTimeMoneyBoxPatch), nameof(DayTimeMoneyBoxPatch.drawFromDecom))
+                     );
+         }
+     }
+ );
+            configMenu.AddParagraph(
+    mod: this.ModManifest,
+    text: () => "Everything below only applied when Harmony patches are enabled."
+);
+            //configMenu.AddPage(this.ModManifest, "Game Speed", pageTitle: () => "Game Speed");
+            //
+            if (IsAndroid())
+            {
+                configMenu.AddParagraph(
+                    mod: this.ModManifest,
+                    text: () => "The UI override for the clock doesn't work on Android, because it uses a different clock to PC. As such, seconds 1 to 9 will not show as 01-09."
+                );
+            }
+            else
+            {
+                configMenu.AddBoolOption(
+                    mod: this.ModManifest,
+                    name: () => "24 Hour Clock",
+                    tooltip: () => "Sets clock to 24 hours.",
+                    getValue: () => this.Config.Is24HourDefault,
+                    setValue: value => this.Config.Is24HourDefault = value
+                 );
+            }
+
+
             configMenu.AddBoolOption(
                  mod: this.ModManifest,
                  name: () => "Enable custom lighting",
@@ -88,13 +195,7 @@ namespace CasualLife
                  getValue: () => this.Config.ControlDayLightLevels,
                  setValue: value => this.Config.ControlDayLightLevels = value
              );
-            configMenu.AddBoolOption(
-                 mod: this.ModManifest,
-                 name: () => "Enable debug time controls",
-                 tooltip: () => "Using arrows on the keyboard you can change time/day/seasons",
-                 getValue: () => this.Config.ControlDayWithKeys,
-                 setValue: value => this.Config.ControlDayWithKeys = value
-             );
+
             configMenu.AddBoolOption(
                  mod: this.ModManifest,
                  name: () => "Show Sun rise/set times",
@@ -102,24 +203,6 @@ namespace CasualLife
                  getValue: () => this.Config.DisplaySunTimes,
                  setValue: value => this.Config.DisplaySunTimes = value
              );
-            configMenu.AddBoolOption(
-                 mod: this.ModManifest,
-                 name: () => "Disable UI second updates on Clock",
-                 tooltip: () => "Disable for better performance on low end machines",
-                 getValue: () => this.Config.DisplaySunTimes,
-                 setValue: value => this.Config.DisplaySunTimes = value
-             );
-            configMenu.AddNumberOption(
-                mod: this.ModManifest,
-                name: () => "Milliseconds per clock tick",
-                getValue: () => this.Config.MillisecondsPerSecond,
-                setValue: value =>
-                {
-                    this.Config.MillisecondsPerSecond = value;
-                    Game1.realMilliSecondsPerGameMinute = value;
-                    Game1.realMilliSecondsPerGameTenMinutes = value * 10;
-                }
-            );
         }
 
         private void OnButtonPressed(object sender, ButtonPressedEventArgs e)

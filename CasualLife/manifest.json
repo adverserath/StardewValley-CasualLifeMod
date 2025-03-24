@@ -6,5 +6,11 @@
   "UniqueID": "Adverserath.CasualLife",
   "EntryDll": "CasualLife.dll",
   "MinimumApiVersion": "4.1.6",
-  "UpdateKeys": [ "Nexus:6011" ]
+  "UpdateKeys": [ "Nexus:6011" ],
+  "Dependencies": [
+    {
+      "UniqueID": "spacechase0.GenericModConfigMenu",
+      "IsRequired": false
+    }
+  ]
 }
