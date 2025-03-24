@@ -28,19 +28,33 @@ namespace CasualLife
             Game1.realMilliSecondsPerGameMinute = this.Config.MillisecondsPerSecond;
             Game1.realMilliSecondsPerGameTenMinutes = this.Config.MillisecondsPerSecond * 10;
 
-            harmony.Patch(
-               original: AccessTools.Method(typeof(Game1), nameof(Game1.UpdateGameClock)),
-               prefix: new HarmonyMethod(typeof(Game1Patches), nameof(Game1Patches.UpdateGameClock))
-            );
-
-            harmony.Patch(
-                original: AccessTools.Method(typeof(DayTimeMoneyBox), "draw", new Type[] { typeof(SpriteBatch) }, null),
-                prefix: new HarmonyMethod(typeof(DayTimeMoneyBoxPatch), nameof(DayTimeMoneyBoxPatch.drawFromDecom))
+            if (!IsAndroid() && !this.Config.NoUI)
+            {
+                harmony.Patch(
+                   original: AccessTools.Method(typeof(Game1), nameof(Game1.UpdateGameClock)),
+                   prefix: new HarmonyMethod(typeof(Game1Patches), nameof(Game1Patches.UpdateGameClock))
                 );
 
+                harmony.Patch(
+                    original: AccessTools.Method(typeof(DayTimeMoneyBox), "draw", new Type[] { typeof(SpriteBatch) }, null),
+                    prefix: new HarmonyMethod(typeof(DayTimeMoneyBoxPatch), nameof(DayTimeMoneyBoxPatch.drawFromDecom))
+                    );
+            }
             helper.Events.Input.ButtonPressed += this.OnButtonPressed;
             helper.Events.GameLoop.GameLaunched += this.OnGameLaunched;
             helper.Events.Multiplayer.PeerConnected += this.FixEventBug;
+            helper.Events.Player.Warped += Player_Warped;
+        }
+
+        private void Player_Warped(object sender, WarpedEventArgs e)
+        {
+            Game1Patches.CheckFestivalsFix();
+        }
+
+        public static bool IsAndroid()
+        {
+            return Environment.OSVersion.Platform == PlatformID.Unix &&
+                   System.IO.File.Exists("/system/build.prop"); // Android-specific file
         }
 
         private void FixEventBug(object sender, PeerConnectedEventArgs e)
@@ -88,6 +102,13 @@ namespace CasualLife
                  getValue: () => this.Config.DisplaySunTimes,
                  setValue: value => this.Config.DisplaySunTimes = value
              );
+            configMenu.AddBoolOption(
+                 mod: this.ModManifest,
+                 name: () => "Disable UI second updates on Clock",
+                 tooltip: () => "Disable for better performance on low end machines",
+                 getValue: () => this.Config.DisplaySunTimes,
+                 setValue: value => this.Config.DisplaySunTimes = value
+             );
             configMenu.AddNumberOption(
                 mod: this.ModManifest,
                 name: () => "Milliseconds per clock tick",
@@ -96,7 +117,7 @@ namespace CasualLife
                 {
                     this.Config.MillisecondsPerSecond = value;
                     Game1.realMilliSecondsPerGameMinute = value;
-                    Game1.realMilliSecondsPerGameTenMinutes = value;
+                    Game1.realMilliSecondsPerGameTenMinutes = value * 10;
                 }
             );
         }

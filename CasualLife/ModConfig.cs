@@ -1,3 +1,5 @@
+using System;
+
 namespace CasualLife
 {
     class ModConfig
@@ -7,6 +9,7 @@ namespace CasualLife
         public bool Is24HourDefault { get; set; } = true;
         public bool DisplaySunTimes { get; set; } = true;
         public int MillisecondsPerSecond { get; set; } = 1000;
+        public bool NoUI { get; set; } = false;
 
     }
 }
