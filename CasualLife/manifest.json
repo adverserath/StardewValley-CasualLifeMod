@@ -1,11 +1,11 @@
 ﻿{
   "Name": "Casual Life",
   "Author": "adverserath",
-  "Version": "1.6.14",
+  "Version": "1.6.15",
   "Description": "Slow down game time and update by minutes",
   "UniqueID": "Adverserath.CasualLife",
   "EntryDll": "CasualLife.dll",
-  "MinimumApiVersion": "4.1.6",
+  "MinimumApiVersion": "4.5.2",
   "UpdateKeys": [ "Nexus:6011" ],
   "Dependencies": [
     {

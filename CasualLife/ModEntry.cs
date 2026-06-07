@@ -22,26 +22,29 @@ namespace CasualLife
             this.Config = this.Helper.ReadConfig<ModConfig>();
 
             Game1Patches.Config = Config;
+            Game1Patches.Initialize(this.Monitor);
             DayTimeMoneyBoxPatch.Config = Config;
 
             harmony = new Harmony(this.ModManifest.UniqueID);
             Game1.realMilliSecondsPerGameMinute = this.Config.MillisecondsPerSecond;
             Game1.realMilliSecondsPerGameTenMinutes = this.Config.MillisecondsPerSecond * 10;
 
-            if (!this.Config.DisableCLock)
-            {
-                harmony.Patch(
-                   original: AccessTools.Method(typeof(Game1), nameof(Game1.UpdateGameClock)),
-                   prefix: new HarmonyMethod(typeof(Game1Patches), nameof(Game1Patches.UpdateGameClock))
-                );
-            }
-            if (!IsAndroid() && !this.Config.DisableCLock)
+            harmony.Patch(
+                original: AccessTools.Method(typeof(Game1), nameof(Game1.UpdateGameClock)),
+                prefix: new HarmonyMethod(typeof(Game1Patches), nameof(Game1Patches.UpdateGameClock))
+            );
+            if (!IsAndroid())
             {
                 harmony.Patch(
                     original: AccessTools.Method(typeof(DayTimeMoneyBox), "draw", new Type[] { typeof(SpriteBatch) }, null),
                     prefix: new HarmonyMethod(typeof(DayTimeMoneyBoxPatch), nameof(DayTimeMoneyBoxPatch.drawFromDecom))
                     );
             }
+            else
+            {
+                Monitor.Log("Android detected, skipping clock UI patch. Android uses a different Clock UI implementation.", LogLevel.Info);
+            }
+
             helper.Events.Input.ButtonPressed += this.OnButtonPressed;
             helper.Events.GameLoop.GameLaunched += this.OnGameLaunched;
             helper.Events.Multiplayer.PeerConnected += this.FixEventBug;
@@ -125,50 +128,6 @@ namespace CasualLife
     }
 );
             }
-
-
-            configMenu.AddPage(ModManifest, "Harmony", () => "Harmony Patches");
-            configMenu.AddParagraph(
-    mod: this.ModManifest,
-    text: () => "Disable all Harmony patches. This will stop custom lighting, 24 hour clock and seconds on clock, " +
-    "but you can still control Game Speed. Do this if your game runs slow."
-);
-            configMenu.AddBoolOption(
-     mod: this.ModManifest,
-     name: () => "Disable harmony patches",
-     tooltip: () => "Harmony patches are disabled, No seconds showing on clock, no lighting changes. Better for performance on low end machines.",
-     getValue: () => this.Config.DisableCLock,
-     setValue: value =>
-     {
-         Game1.timeOfDay = (Game1.timeOfDay / 10) * 10;
-         this.Config.DisableCLock = value;
-         if (value)
-         {
-             harmony.Unpatch(original: AccessTools.Method(typeof(Game1), nameof(Game1.UpdateGameClock)), HarmonyPatchType.Prefix, "*");
-             if (!IsAndroid())
-                 harmony.Unpatch(original: AccessTools.Method(typeof(DayTimeMoneyBox), "draw", new Type[] { typeof(SpriteBatch) }, null), HarmonyPatchType.Prefix, "*");
-
-         }
-         else
-         {
-             harmony.Patch(
-               original: AccessTools.Method(typeof(Game1), nameof(Game1.UpdateGameClock)),
-               prefix: new HarmonyMethod(typeof(Game1Patches), nameof(Game1Patches.UpdateGameClock))
-            );
-             if (!IsAndroid())
-                 harmony.Patch(
-                     original: AccessTools.Method(typeof(DayTimeMoneyBox), "draw", new Type[] { typeof(SpriteBatch) }, null),
-                     prefix: new HarmonyMethod(typeof(DayTimeMoneyBoxPatch), nameof(DayTimeMoneyBoxPatch.drawFromDecom))
-                     );
-         }
-     }
- );
-            configMenu.AddParagraph(
-    mod: this.ModManifest,
-    text: () => "Everything below only applied when Harmony patches are enabled."
-);
-            //configMenu.AddPage(this.ModManifest, "Game Speed", pageTitle: () => "Game Speed");
-            //
             if (IsAndroid())
             {
                 configMenu.AddParagraph(
@@ -231,6 +190,7 @@ namespace CasualLife
 
                 if (e.Button == SButton.Up)
                 {
+                    Game1.gameTimeInterval = 0;
                     if (Game1.timeOfDay % 100 >= 59)
                     {
                         Game1.timeOfDay += 41;
@@ -244,6 +204,7 @@ namespace CasualLife
 
                 if (e.Button == SButton.Down)
                 {
+                    Game1.gameTimeInterval = 0;
                     if (Game1.timeOfDay % 100 <= 0)
                     {
                         Game1.timeOfDay -= 41;

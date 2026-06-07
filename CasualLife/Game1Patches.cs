@@ -124,8 +124,6 @@ namespace CasualLife
         private static int sunRiseTime;
         private static int sunSetTime;
         private static int lastLightUpdate = 0;
-        private static int counter = 0;
-        private static int tickCount = realMilliSecondsPerGameTenMinutes / realMilliSecondsPerGameMinute;
 
         [HarmonyPatch(typeof(Game1), nameof(Game1.UpdateGameClock))]
         public static bool UpdateGameClock(GameTime time)
@@ -134,148 +132,135 @@ namespace CasualLife
             {
                 Game1.gameTimeInterval += time.ElapsedGameTime.Milliseconds;
             }
-
-            if (lastLightUpdate != timeOfDay)
-            {
-
-                if (DoLighting)// && Game1.IsMasterGame)
-                {
-                    if (lightDay != dayOfMonth)
-                    {
-                        int multiplier = 300;
-                        if (currentSeason == "spring")
-                        {
-                            seasonColor = (254 - multiplier * ((float)(Math.Abs((14 - (29 - dayOfMonth) - 27) * -1)) / 100));
-                        }
-                        else if (currentSeason == "summer")
-                        {
-                            seasonColor = 254 - multiplier * (((float)Math.Abs((14 - dayOfMonth) * -1)) / 100);
-                        }
-                        else if (currentSeason == "fall")
-                        {
-                            seasonColor = (254 - multiplier * (((float)(Math.Abs((14 - (dayOfMonth) - 27) * -1))) / 100));
-                        }
-                        else if (currentSeason == "winter")
-                        {
-                            seasonColor = (254 - multiplier * (((float)(55 - Math.Abs(((dayOfMonth) - 14) * -1))) / 100));
-                        }
-                        sunRiseTime = (int)(700 + (400 - (seasonColor - 90) * 5) / 2);
-                        if (sunRiseTime % 100 >= 60)
-                        {
-                            sunRiseTime = sunRiseTime - sunRiseTime % 100 + 100 + sunRiseTime % 100 % 60;
-                        }
-                        sunSetTime = (int)(2000 - (400 - (seasonColor - 90) * 5));
-                        if (sunSetTime % 100 >= 60)
-                        {
-                            sunSetTime = sunSetTime - sunSetTime % 100 + 100 + sunSetTime % 100 % 60;
-                        }
-                        if (DisplaySunTimes)
-                        {
-                            lightDay = dayOfMonth;
-                            string sunriseStr = sunRiseTime.ToString();
-                            string sunsetStr = sunSetTime.ToString();
-                            Game1.addHUDMessage(new HUDMessage($"Today the sun will rise at {sunriseStr.Insert(sunriseStr.Length - 2, ":")} and set at {sunsetStr.Insert(sunsetStr.Length - 2, ":")}", 3500f));
-                        }
-
-                    }
-
-
-
-                    float timeOfDayDivisable = timeOfDay / 100 * 100 + ((timeOfDay % 100) / 60f * 100) + ((float)gameTimeInterval / MillisecondsPerSecond);
-                    float baseCalc = (1 - (float)((Math.Cos(Math.Sqrt(Math.Pow((timeOfDayDivisable - 2500) * -1, 2)) / 100 / 12 * Math.PI) / 2 + 0.5) / 1.1 + 0.05));
-                    float lightByTime = ((241 - (seasonColor * baseCalc)));
-
-                    int R = (int)lightByTime;
-                    int B = (int)lightByTime;
-                    int G = (int)lightByTime;
-                    int secondsOfDay = getTimeInSeconds(Game1.timeOfDay);
-                    int sunRiseSeconds = getTimeInSeconds(sunRiseTime);
-                    int sunSetSeconds = getTimeInSeconds(sunSetTime);
-
-                    if (secondsOfDay < sunRiseSeconds + 60)
-                    {
-                        float difference = 1 - (float)((sunRiseSeconds + 60) - secondsOfDay) / (sunRiseSeconds + 60);
-                        R = (int)MathHelper.Lerp(bgColor.R, lightByTime, difference);
-                        G = (int)MathHelper.Lerp(bgColor.G, lightByTime, difference);
-                        B = (int)MathHelper.Lerp(bgColor.B, lightByTime, difference);
-                    }
-                    else if (secondsOfDay < sunSetSeconds)
-                    {
-                        R = (int)lightByTime;
-                        G = (int)lightByTime;
-                        B = (int)lightByTime;
-                    }
-                    else if (secondsOfDay < sunSetSeconds + 180)
-                    {
-                        float difference = 1 - (float)(sunSetSeconds + 180 - secondsOfDay) / 180f;
-                        R = (int)MathHelper.Lerp(lightByTime, eveningColor.R, difference);
-                        G = (int)MathHelper.Lerp(lightByTime, eveningColor.G, difference);
-                        B = (int)MathHelper.Lerp(lightByTime, eveningColor.B, difference);
-                    }
-                    else
-                    {
-                        R = eveningColor.R;
-                        G = eveningColor.G;
-                        B = eveningColor.B;
-                    }
-                    outdoorLight = new Color(R, G, B, 254);
-                }
-                else
-                {
-                    lightDay = 0;
-
-                    if (timeOfDay >= getTrulyDarkTime(currentLocation))
-                    {
-                        int num = (int)((float)(timeOfDay - timeOfDay % 100) + (float)(timeOfDay % 100 / 10) * 16.66f);
-                        float num2 = Math.Min(0.93f, 0.75f + ((float)(num - getTrulyDarkTime(currentLocation)) + (float)gameTimeInterval / (float)realMilliSecondsPerGameTenMinutes * 16.6f) * 0.000625f);
-                        outdoorLight = (IsRainingHere() ? ambientLight : eveningColor) * num2;
-                    }
-                    else if (timeOfDay >= getStartingToGetDarkTime(currentLocation))
-                    {
-                        int num3 = (int)((float)(timeOfDay - timeOfDay % 100) + (float)(timeOfDay % 100 / 10) * 16.66f);
-                        float num4 = Math.Min(0.93f, 0.3f + ((float)(num3 - getStartingToGetDarkTime(currentLocation)) + (float)gameTimeInterval / (float)realMilliSecondsPerGameTenMinutes * 16.6f) * 0.00225f);
-                        outdoorLight = (IsRainingHere() ? ambientLight : eveningColor) * num4;
-                    }
-                    else if (IsRainingHere())
-                    {
-                        outdoorLight = ambientLight * 0.3f;
-                    }
-                    else
-                    {
-                        outdoorLight = ambientLight;
-                    }
-                }
-                lastLightUpdate = timeOfDay;
-            }
+            LightingCalculator();
 
             GameLocation gameLocation = currentLocation;
             if (gameTimeInterval > realMilliSecondsPerGameMinute + ((gameLocation != null) ? new int?(gameLocation.ExtraMillisecondsPerInGameMinute * 10) : null) && Game1.IsMasterGame)
             {
-                counter++;
-                if (counter >= tickCount)
-                    counter = 0;
                 if (panMode)
                 {
                     Game1.gameTimeInterval = 0;
                 }
-                else if (counter != 0)
-                {
-                    CheckFestivalsFix();
-
-                    Game1.timeOfDay += 1;
-                    gameTimeInterval = 0;
-                    netWorldState.Value.UpdateFromGame1();
-                }
                 else
                 {
-                    Game1.timeOfDay -= 9;
-                    Game1.performTenMinuteClockUpdate();
+                    Game1.timeOfDay += 1;
+                    if ((timeOfDay % 100) % 10 == 0)
+                    {
+                        Game1.timeOfDay -= 10;
+                        Game1.performTenMinuteClockUpdate();
+                    }
+                    else
+                    {
+                        CheckFestivalsFix();
+                        gameTimeInterval = 0;
+                        if (Game1.IsMultiplayer)
+                        {
+                            netWorldState.Value.UpdateFromGame1();
+                        }
+                    }
                 }
             }
             return false;
         }
 
+        private static void LightingCalculator()
+        {
+            if (DoLighting)
+            {
+                if (lightDay != dayOfMonth)
+                {
+                    int multiplier = 300;
+                    if (currentSeason == "spring")
+                        seasonColor = (254 - multiplier * ((float)(Math.Abs((14 - (29 - dayOfMonth) - 27) * -1)) / 100));
+                    else if (currentSeason == "summer")
+                        seasonColor = 254 - multiplier * (((float)Math.Abs((14 - dayOfMonth) * -1)) / 100);
+                    else if (currentSeason == "fall")
+                        seasonColor = (254 - multiplier * (((float)(Math.Abs((14 - (dayOfMonth) - 27) * -1))) / 100));
+                    else if (currentSeason == "winter")
+                        seasonColor = (254 - multiplier * (((float)(55 - Math.Abs(((dayOfMonth) - 14) * -1))) / 100));
 
+                    sunRiseTime = (int)(700 + (400 - (seasonColor - 90) * 5) / 2);
+                    if (sunRiseTime % 100 >= 60)
+                        sunRiseTime = sunRiseTime - sunRiseTime % 100 + 100 + sunRiseTime % 100 % 60;
+
+                    sunSetTime = (int)(2000 - (400 - (seasonColor - 90) * 5));
+                    if (sunSetTime % 100 >= 60)
+                        sunSetTime = sunSetTime - sunSetTime % 100 + 100 + sunSetTime % 100 % 60;
+
+                    lightDay = dayOfMonth;
+                    if (DisplaySunTimes)
+                    {
+                        string sunriseStr = sunRiseTime.ToString();
+                        string sunsetStr = sunSetTime.ToString();
+                        Game1.addHUDMessage(new HUDMessage($"Today the sun will rise at {sunriseStr.Insert(sunriseStr.Length - 2, ":")} and set at {sunsetStr.Insert(sunsetStr.Length - 2, ":")}", 3500f));
+                    }
+                }
+
+                float timeOfDayDivisable = timeOfDay / 100 * 100 + ((timeOfDay % 100) / 60f * 100) + ((float)gameTimeInterval / MillisecondsPerSecond);
+                float baseCalc = (1 - (float)((Math.Cos(Math.Sqrt(Math.Pow((timeOfDayDivisable - 2500) * -1, 2)) / 100 / 12 * Math.PI) / 2 + 0.5) / 1.1 + 0.05));
+                float lightByTime = ((241 - (seasonColor * baseCalc)));
+
+                int R = (int)lightByTime;
+                int B = (int)lightByTime;
+                int G = (int)lightByTime;
+                int secondsOfDay = getTimeInSeconds(Game1.timeOfDay);
+                int sunRiseSeconds = getTimeInSeconds(sunRiseTime);
+                int sunSetSeconds = getTimeInSeconds(sunSetTime);
+
+                if (secondsOfDay < sunRiseSeconds + 60)
+                {
+                    float difference = 1 - (float)((sunRiseSeconds + 60) - secondsOfDay) / (sunRiseSeconds + 60);
+                    R = (int)MathHelper.Lerp(bgColor.R, lightByTime, difference);
+                    G = (int)MathHelper.Lerp(bgColor.G, lightByTime, difference);
+                    B = (int)MathHelper.Lerp(bgColor.B, lightByTime, difference);
+                }
+                else if (secondsOfDay < sunSetSeconds)
+                {
+                    R = (int)lightByTime;
+                    G = (int)lightByTime;
+                    B = (int)lightByTime;
+                }
+                else if (secondsOfDay < sunSetSeconds + 180)
+                {
+                    float difference = 1 - (float)(sunSetSeconds + 180 - secondsOfDay) / 180f;
+                    R = (int)MathHelper.Lerp(lightByTime, eveningColor.R, difference);
+                    G = (int)MathHelper.Lerp(lightByTime, eveningColor.G, difference);
+                    B = (int)MathHelper.Lerp(lightByTime, eveningColor.B, difference);
+                }
+                else
+                {
+                    R = eveningColor.R;
+                    G = eveningColor.G;
+                    B = eveningColor.B;
+                }
+                outdoorLight = new Color(R, G, B, 254);
+            }
+            else
+            {
+                lightDay = 0;
+
+                if (timeOfDay >= getTrulyDarkTime(currentLocation))
+                {
+                    int num = (int)((float)(timeOfDay - timeOfDay % 100) + (float)(timeOfDay % 100 / 10) * 16.66f);
+                    float num2 = Math.Min(0.93f, 0.75f + ((float)(num - getTrulyDarkTime(currentLocation)) + (float)gameTimeInterval / (float)realMilliSecondsPerGameTenMinutes * 16.6f) * 0.000625f);
+                    outdoorLight = (IsRainingHere() ? ambientLight : eveningColor) * num2;
+                }
+                else if (timeOfDay >= getStartingToGetDarkTime(currentLocation))
+                {
+                    int num3 = (int)((float)(timeOfDay - timeOfDay % 100) + (float)(timeOfDay % 100 / 10) * 16.66f);
+                    float num4 = Math.Min(0.93f, 0.3f + ((float)(num3 - getStartingToGetDarkTime(currentLocation)) + (float)gameTimeInterval / (float)realMilliSecondsPerGameTenMinutes * 16.6f) * 0.00225f);
+                    outdoorLight = (IsRainingHere() ? ambientLight : eveningColor) * num4;
+                }
+                else if (IsRainingHere())
+                {
+                    outdoorLight = ambientLight * 0.3f;
+                }
+                else
+                {
+                    outdoorLight = ambientLight;
+                }
+            }
+        }
 
         public static void CheckFestivalsFix()
         {
@@ -291,10 +276,10 @@ namespace CasualLife
         public static void create(MineShaft __instance)
         {
             if (!Game1.IsMultiplayer || (Game1.IsMultiplayer &&
-    Game1.otherFarmers.Any() &&
-    Game1.otherFarmers.Roots.All
-    (f => ((NetFarmerRoot)f.Value).Value.currentLocation is MineShaft
-    && ((MineShaft)((NetFarmerRoot)f.Value).Value.currentLocation).mineLevel == MineShaft.desertArea)))
+                Game1.otherFarmers.Any() &&
+                Game1.otherFarmers.Roots.All
+                (f => ((NetFarmerRoot)f.Value).Value.currentLocation is MineShaft
+                && ((MineShaft)((NetFarmerRoot)f.Value).Value.currentLocation).mineLevel == MineShaft.desertArea)))
             {
                 __instance.ExtraMillisecondsPerInGameMinute = 200;
             }
