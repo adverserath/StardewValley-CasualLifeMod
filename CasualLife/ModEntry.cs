@@ -82,7 +82,6 @@ namespace CasualLife
                  save: () => this.Helper.WriteConfig(this.Config)
              );
             configMenu.AddPageLink(this.ModManifest, "General", text: () => "General");
-            configMenu.AddPageLink(this.ModManifest, "Harmony", text: () => "Harmony Patches");
 
             configMenu.AddPage(ModManifest, "General", () => "General Settings");
 
@@ -155,13 +154,6 @@ namespace CasualLife
                  setValue: value => this.Config.ControlDayLightLevels = value
              );
 
-            configMenu.AddBoolOption(
-                 mod: this.ModManifest,
-                 name: () => "Show Sun rise/set times",
-                 tooltip: () => "Print out the sun rise and sunset times, when custom lighting is on",
-                 getValue: () => this.Config.DisplaySunTimes,
-                 setValue: value => this.Config.DisplaySunTimes = value
-             );
         }
 
         private void OnButtonPressed(object sender, ButtonPressedEventArgs e)

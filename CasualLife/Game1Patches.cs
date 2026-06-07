@@ -20,7 +20,6 @@ namespace CasualLife
 
         public static int MillisecondsPerSecond { get { return Config.MillisecondsPerSecond; } set { Config.MillisecondsPerSecond = value; } }
         public static bool DoLighting { get { return Config.ControlDayLightLevels; } set { Config.ControlDayLightLevels = value; } }
-        public static bool DisplaySunTimes { get { return Config.DisplaySunTimes; } set { Config.DisplaySunTimes = value; } }
 
         #region Accessors
         public static int dayOfMonth { get { return Game1.dayOfMonth; } }
@@ -116,14 +115,21 @@ namespace CasualLife
         }
         private static int getTimeInSeconds(int time)
         {
-            return (time / 100 * 60) + time % 100; ;
+            return (time / 100 * 60) + time % 100;
+        }
+
+        private static int NormalizeGameTime(int t)
+        {
+            int minutes = t % 100;
+            return minutes >= 60 ? t - minutes + 100 + minutes % 60 : t;
         }
 
         private static int lightDay = 0;
         private static float seasonColor;
         private static int sunRiseTime;
         private static int sunSetTime;
-        private static int lastLightUpdate = 0;
+        private static int sunRiseSeconds;
+        private static int sunSetSeconds;
 
         [HarmonyPatch(typeof(Game1), nameof(Game1.UpdateGameClock))]
         public static bool UpdateGameClock(GameTime time)
@@ -169,65 +175,53 @@ namespace CasualLife
             {
                 if (lightDay != dayOfMonth)
                 {
-                    int multiplier = 300;
                     if (currentSeason == "spring")
-                        seasonColor = (254 - multiplier * ((float)(Math.Abs((14 - (29 - dayOfMonth) - 27) * -1)) / 100));
+                        seasonColor = 254 - 300 * (float)Math.Abs(dayOfMonth - 42) / 100;
                     else if (currentSeason == "summer")
-                        seasonColor = 254 - multiplier * (((float)Math.Abs((14 - dayOfMonth) * -1)) / 100);
+                        seasonColor = 254 - 300 * (float)Math.Abs(dayOfMonth - 14) / 100;
                     else if (currentSeason == "fall")
-                        seasonColor = (254 - multiplier * (((float)(Math.Abs((14 - (dayOfMonth) - 27) * -1))) / 100));
+                        seasonColor = 254 - 300 * (float)Math.Abs(dayOfMonth + 13) / 100;
                     else if (currentSeason == "winter")
-                        seasonColor = (254 - multiplier * (((float)(55 - Math.Abs(((dayOfMonth) - 14) * -1))) / 100));
+                        seasonColor = 254 - 300 * (55 - (float)Math.Abs(dayOfMonth - 14)) / 100;
+                    else
+                        seasonColor = 170;
 
-                    sunRiseTime = (int)(700 + (400 - (seasonColor - 90) * 5) / 2);
-                    if (sunRiseTime % 100 >= 60)
-                        sunRiseTime = sunRiseTime - sunRiseTime % 100 + 100 + sunRiseTime % 100 % 60;
+                    sunRiseTime = NormalizeGameTime((int)(700 + (400 - (seasonColor - 90) * 5) / 2));
+                    sunSetTime = NormalizeGameTime((int)(2000 - (400 - (seasonColor - 90) * 5)));
 
-                    sunSetTime = (int)(2000 - (400 - (seasonColor - 90) * 5));
-                    if (sunSetTime % 100 >= 60)
-                        sunSetTime = sunSetTime - sunSetTime % 100 + 100 + sunSetTime % 100 % 60;
+                    sunRiseSeconds = getTimeInSeconds(sunRiseTime);
+                    sunSetSeconds = getTimeInSeconds(sunSetTime);
 
                     lightDay = dayOfMonth;
-                    if (DisplaySunTimes)
-                    {
-                        string sunriseStr = sunRiseTime.ToString();
-                        string sunsetStr = sunSetTime.ToString();
-                        Game1.addHUDMessage(new HUDMessage($"Today the sun will rise at {sunriseStr.Insert(sunriseStr.Length - 2, ":")} and set at {sunsetStr.Insert(sunsetStr.Length - 2, ":")}", 3500f));
-                    }
+
+                    string sunriseStr = sunRiseTime.ToString();
+                    string sunsetStr = sunSetTime.ToString();
+                    Game1.addHUDMessage(new HUDMessage($"Today the sun will rise at {sunriseStr.Insert(sunriseStr.Length - 2, ":")} and set at {sunsetStr.Insert(sunsetStr.Length - 2, ":")}", 3500f));
+
                 }
 
                 float timeOfDayDivisable = timeOfDay / 100 * 100 + ((timeOfDay % 100) / 60f * 100) + ((float)gameTimeInterval / MillisecondsPerSecond);
                 float baseCalc = (1 - (float)((Math.Cos(Math.Sqrt(Math.Pow((timeOfDayDivisable - 2500) * -1, 2)) / 100 / 12 * Math.PI) / 2 + 0.5) / 1.1 + 0.05));
-                float lightByTime = ((241 - (seasonColor * baseCalc)));
+                float lightByTime = 241 - seasonColor * baseCalc;
 
-                int R = (int)lightByTime;
-                int B = (int)lightByTime;
-                int G = (int)lightByTime;
+                int R = (int)lightByTime, G = (int)lightByTime, B = (int)lightByTime;
                 int secondsOfDay = getTimeInSeconds(Game1.timeOfDay);
-                int sunRiseSeconds = getTimeInSeconds(sunRiseTime);
-                int sunSetSeconds = getTimeInSeconds(sunSetTime);
 
                 if (secondsOfDay < sunRiseSeconds + 60)
                 {
-                    float difference = 1 - (float)((sunRiseSeconds + 60) - secondsOfDay) / (sunRiseSeconds + 60);
+                    float difference = 1 - (float)(sunRiseSeconds + 60 - secondsOfDay) / (sunRiseSeconds + 60);
                     R = (int)MathHelper.Lerp(bgColor.R, lightByTime, difference);
                     G = (int)MathHelper.Lerp(bgColor.G, lightByTime, difference);
                     B = (int)MathHelper.Lerp(bgColor.B, lightByTime, difference);
                 }
-                else if (secondsOfDay < sunSetSeconds)
-                {
-                    R = (int)lightByTime;
-                    G = (int)lightByTime;
-                    B = (int)lightByTime;
-                }
-                else if (secondsOfDay < sunSetSeconds + 180)
+                else if (secondsOfDay >= sunSetSeconds && secondsOfDay < sunSetSeconds + 180)
                 {
                     float difference = 1 - (float)(sunSetSeconds + 180 - secondsOfDay) / 180f;
                     R = (int)MathHelper.Lerp(lightByTime, eveningColor.R, difference);
                     G = (int)MathHelper.Lerp(lightByTime, eveningColor.G, difference);
                     B = (int)MathHelper.Lerp(lightByTime, eveningColor.B, difference);
                 }
-                else
+                else if (secondsOfDay >= sunSetSeconds + 180)
                 {
                     R = eveningColor.R;
                     G = eveningColor.G;
