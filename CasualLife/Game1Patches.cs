@@ -20,6 +20,7 @@ namespace CasualLife
 
         public static int MillisecondsPerSecond { get { return Config.MillisecondsPerSecond; } set { Config.MillisecondsPerSecond = value; } }
         public static bool DoLighting { get { return Config.ControlDayLightLevels; } set { Config.ControlDayLightLevels = value; } }
+        public static bool DisplaySunTimes { get { return Config.DisplaySunTimes; } set { Config.DisplaySunTimes = value; } }
 
         #region Accessors
         public static int dayOfMonth { get { return Game1.dayOfMonth; } }
@@ -125,7 +126,7 @@ namespace CasualLife
         }
 
         private static int lightDay = 0;
-        private static float seasonColor;
+        private static float dayLengthFactor;
         private static int sunRiseTime;
         private static int sunSetTime;
         private static int sunRiseSeconds;
@@ -175,51 +176,66 @@ namespace CasualLife
             {
                 if (lightDay != dayOfMonth)
                 {
-                    if (currentSeason == "spring")
-                        seasonColor = 254 - 300 * (float)Math.Abs(dayOfMonth - 42) / 100;
-                    else if (currentSeason == "summer")
-                        seasonColor = 254 - 300 * (float)Math.Abs(dayOfMonth - 14) / 100;
-                    else if (currentSeason == "fall")
-                        seasonColor = 254 - 300 * (float)Math.Abs(dayOfMonth + 13) / 100;
-                    else if (currentSeason == "winter")
-                        seasonColor = 254 - 300 * (55 - (float)Math.Abs(dayOfMonth - 14)) / 100;
-                    else
-                        seasonColor = 170;
+                    // Smooth cosine over the 112-day year: 1.0 at summer solstice (mid-summer = yearDay 41), 0.0 at winter solstice (mid-winter = yearDay 97).
+                    int seasonIndex = currentSeason == "summer" ? 1 : currentSeason == "fall" ? 2 : currentSeason == "winter" ? 3 : 0;
+                    int yearDay = seasonIndex * 28 + (dayOfMonth - 1);
+                    dayLengthFactor = 0.5f + 0.5f * (float)Math.Cos(2.0 * Math.PI * (yearDay - 41) / 112.0);
 
-                    sunRiseTime = NormalizeGameTime((int)(700 + (400 - (seasonColor - 90) * 5) / 2));
-                    sunSetTime = NormalizeGameTime((int)(2000 - (400 - (seasonColor - 90) * 5)));
-
+                    // Winter: rise 9:00 AM, set 5:00 PM. Summer: rise 5:30 AM, set 9:00 PM.
+                    sunRiseTime = NormalizeGameTime((int)(900 - dayLengthFactor * 370));
+                    sunSetTime  = NormalizeGameTime((int)(1700 + dayLengthFactor * 400));
                     sunRiseSeconds = getTimeInSeconds(sunRiseTime);
-                    sunSetSeconds = getTimeInSeconds(sunSetTime);
+                    sunSetSeconds  = getTimeInSeconds(sunSetTime);
 
                     lightDay = dayOfMonth;
-
-                    string sunriseStr = sunRiseTime.ToString();
-                    string sunsetStr = sunSetTime.ToString();
-                    Game1.addHUDMessage(new HUDMessage($"Today the sun will rise at {sunriseStr.Insert(sunriseStr.Length - 2, ":")} and set at {sunsetStr.Insert(sunsetStr.Length - 2, ":")}", 3500f));
-
+                    if (DisplaySunTimes)
+                    {
+                        string riseStr = sunRiseTime.ToString();
+                        string setStr  = sunSetTime.ToString();
+                        Game1.addHUDMessage(new HUDMessage(
+                            $"Today the sun will rise at {riseStr.Insert(riseStr.Length - 2, ":")} and set at {setStr.Insert(setStr.Length - 2, ":")}", 3500f));
+                    }
                 }
 
-                float timeOfDayDivisable = timeOfDay / 100 * 100 + ((timeOfDay % 100) / 60f * 100) + ((float)gameTimeInterval / MillisecondsPerSecond);
-                float baseCalc = (1 - (float)((Math.Cos(Math.Sqrt(Math.Pow((timeOfDayDivisable - 2500) * -1, 2)) / 100 / 12 * Math.PI) / 2 + 0.5) / 1.1 + 0.05));
-                float lightByTime = 241 - seasonColor * baseCalc;
+                float timeAsFloat = timeOfDay / 100 * 100 + (timeOfDay % 100) / 60f * 100 + (float)gameTimeInterval / MillisecondsPerSecond;
 
-                int R = (int)lightByTime, G = (int)lightByTime, B = (int)lightByTime;
+                // Cosine centered on 2500 (1 AM = darkest point): yields ~0.95 around 1 PM and ~0.04 around 1 AM.
+                float nightCos = (float)Math.Cos(Math.Abs(timeAsFloat - 2500) / 1200.0 * Math.PI);
+                float dayFactor = 1f - (nightCos / 2f + 0.5f) / 1.1f - 0.05f;
+
+                // Peak midday brightness scales with season: summer days are much brighter than winter days.
+                float peakBrightness = 89f + dayLengthFactor * 165f;
+
+                // outdoorLight is a darkness overlay: low values = bright scene, high values = dark scene.
+                float darknessBase = 241f - peakBrightness * dayFactor;
+
+                // Each season hues the darkness overlay. Effect is subtle at midday (near zero) and visible at dusk/night.
+                float tintR, tintG, tintB;
+                if (currentSeason == "spring")      { tintR = 0.90f; tintG = 1.00f; tintB = 0.92f; } // cool fresh
+                else if (currentSeason == "summer") { tintR = 1.00f; tintG = 0.96f; tintB = 0.78f; } // warm golden
+                else if (currentSeason == "fall")   { tintR = 1.00f; tintG = 0.82f; tintB = 0.65f; } // amber
+                else                                { tintR = 0.78f; tintG = 0.88f; tintB = 1.00f; } // winter: cold blue
+
+                int R = Math.Max(0, (int)(darknessBase * tintR));
+                int G = Math.Max(0, (int)(darknessBase * tintG));
+                int B = Math.Max(0, (int)(darknessBase * tintB));
                 int secondsOfDay = getTimeInSeconds(Game1.timeOfDay);
 
                 if (secondsOfDay < sunRiseSeconds + 60)
                 {
-                    float difference = 1 - (float)(sunRiseSeconds + 60 - secondsOfDay) / (sunRiseSeconds + 60);
-                    R = (int)MathHelper.Lerp(bgColor.R, lightByTime, difference);
-                    G = (int)MathHelper.Lerp(bgColor.G, lightByTime, difference);
-                    B = (int)MathHelper.Lerp(bgColor.B, lightByTime, difference);
+                    // Pre-dawn: fade from night sky colour to daytime over the window leading up to sunrise.
+                    float t = (float)secondsOfDay / (sunRiseSeconds + 60);
+                    R = (int)MathHelper.Lerp(bgColor.R, R, t);
+                    G = (int)MathHelper.Lerp(bgColor.G, G, t);
+                    B = (int)MathHelper.Lerp(bgColor.B, B, t);
                 }
                 else if (secondsOfDay >= sunSetSeconds && secondsOfDay < sunSetSeconds + 180)
                 {
-                    float difference = 1 - (float)(sunSetSeconds + 180 - secondsOfDay) / 180f;
-                    R = (int)MathHelper.Lerp(lightByTime, eveningColor.R, difference);
-                    G = (int)MathHelper.Lerp(lightByTime, eveningColor.G, difference);
-                    B = (int)MathHelper.Lerp(lightByTime, eveningColor.B, difference);
+                    // Sunset: crossfade to evening colour over 180 in-game seconds.
+                    float t = 1f - (float)(sunSetSeconds + 180 - secondsOfDay) / 180f;
+                    R = (int)MathHelper.Lerp(R, eveningColor.R, t);
+                    G = (int)MathHelper.Lerp(G, eveningColor.G, t);
+                    B = (int)MathHelper.Lerp(B, eveningColor.B, t);
                 }
                 else if (secondsOfDay >= sunSetSeconds + 180)
                 {
@@ -227,6 +243,7 @@ namespace CasualLife
                     G = eveningColor.G;
                     B = eveningColor.B;
                 }
+
                 outdoorLight = new Color(R, G, B, 254);
             }
             else
