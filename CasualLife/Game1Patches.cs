@@ -1,5 +1,6 @@
 using HarmonyLib;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
 using Netcode;
 using StardewModdingAPI;
 using StardewValley;
@@ -315,6 +316,26 @@ namespace CasualLife
             return false;
         }
 
+        public static void UpdateOnlinePause(GameTime gameTime)
+        {
+            if (!Game1.IsMultiplayer || LocalMultiplayer.IsLocalMultiplayer(is_local_only: true) || Game1.player == null)
+                return;
 
+            Game1.player.requestingTimePause.Value = !Game1.shouldTimePass(true);
+
+            if (Game1.IsMasterGame)
+            {
+                bool allPaused = true;
+                foreach (Farmer farmer in Game1.getOnlineFarmers())
+                {
+                    if (!farmer.requestingTimePause.Value)
+                    {
+                        allPaused = false;
+                        break;
+                    }
+                }
+                Game1.netWorldState.Value.IsTimePaused = allPaused;
+            }
+        }
     }
 }

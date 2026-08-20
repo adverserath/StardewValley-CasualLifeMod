@@ -33,6 +33,10 @@ namespace CasualLife
                 original: AccessTools.Method(typeof(Game1), nameof(Game1.UpdateGameClock)),
                 prefix: new HarmonyMethod(typeof(Game1Patches), nameof(Game1Patches.UpdateGameClock))
             );
+            harmony.Patch(
+                original: AccessTools.Method(typeof(Game1), "Update", new Type[] { typeof(GameTime) }),
+                postfix: new HarmonyMethod(typeof(Game1Patches), nameof(Game1Patches.UpdateOnlinePause))
+            );
             if (!IsAndroid())
             {
                 harmony.Patch(
